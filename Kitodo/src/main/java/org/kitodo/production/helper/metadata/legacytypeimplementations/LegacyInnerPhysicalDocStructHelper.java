@@ -92,12 +92,12 @@ public class LegacyInnerPhysicalDocStructHelper implements LegacyDocStructHelper
     public List<LegacyMetadataHelper> getAllMetadataByType(LegacyMetadataTypeHelper metadataType) {
         if (metadataType == LegacyMetadataTypeHelper.SPECIAL_TYPE_ORDER) {
             return Objects.nonNull(physicalDivision)
-                    ? Arrays.asList(
-                        new LegacyMetadataHelper(this, metadataType, Integer.toString(physicalDivision.getOrder())))
+                    ? List.of(
+                            new LegacyMetadataHelper(this, metadataType, Integer.toString(physicalDivision.getOrder())))
                     : Collections.emptyList();
         } else if (metadataType == LegacyMetadataTypeHelper.SPECIAL_TYPE_ORDERLABEL) {
             return Objects.nonNull(physicalDivision) && Objects.nonNull(physicalDivision.getOrderlabel())
-                    ? Arrays.asList(new LegacyMetadataHelper(this, metadataType, physicalDivision.getOrderlabel()))
+                    ? List.of(new LegacyMetadataHelper(this, metadataType, physicalDivision.getOrderlabel()))
                     : Collections.emptyList();
         } else {
             throw new UnsupportedOperationException("Not yet implemented");
