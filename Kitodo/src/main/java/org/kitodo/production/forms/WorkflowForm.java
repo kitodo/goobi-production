@@ -29,9 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.enterprise.context.SessionScoped;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.model.SelectItem;
+import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 
 import org.apache.commons.io.IOUtils;
@@ -59,7 +60,7 @@ import org.kitodo.production.workflow.model.Converter;
 import org.kitodo.production.workflow.model.Reader;
 
 @Named("WorkflowForm")
-@SessionScoped
+@ViewScoped
 public class WorkflowForm extends BaseForm {
 
     private static final Logger logger = LogManager.getLogger(WorkflowForm.class);
@@ -277,8 +278,14 @@ public class WorkflowForm extends BaseForm {
 
         xmlDiagram = requestParameterMap.get("editForm:workflowTabView:xmlDiagram");
         if (Objects.nonNull(xmlDiagram)) {
-            svgDiagram = StringUtils.substringAfter(xmlDiagram, "kitodo-diagram-separator");
-            xmlDiagram = StringUtils.substringBefore(xmlDiagram, "kitodo-diagram-separator");
+            if (xmlDiagram.contains("kitodo-diagram-separator")) {
+                svgDiagram = StringUtils.substringAfter(xmlDiagram, "kitodo-diagram-separator");
+                xmlDiagram = StringUtils.substringBefore(xmlDiagram, "kitodo-diagram-separator");
+            }
+            if (xmlDiagram.isEmpty()) {
+                Helper.setErrorMessage("emptyWorkflow");
+                return false;
+            }
 
             Reader reader = new Reader(new ByteArrayInputStream(xmlDiagram.getBytes(StandardCharsets.UTF_8)));
             reader.validateWorkflowTasks();
@@ -286,7 +293,9 @@ public class WorkflowForm extends BaseForm {
             Converter converter = new Converter(new ByteArrayInputStream(xmlDiagram.getBytes(StandardCharsets.UTF_8)));
             converter.validateWorkflowTaskList();
 
-            saveFile(svgDiagramURI, svgDiagram);
+            if (Objects.nonNull(svgDiagram)) {
+                saveFile(svgDiagramURI, svgDiagram);
+            }
             saveFile(xmlDiagramURI, xmlDiagram);
         }
 
@@ -343,9 +352,7 @@ public class WorkflowForm extends BaseForm {
      * @return page
      */
     public String newWorkflow() {
-        this.workflow = new Workflow();
-        this.workflow.setClient(ServiceManager.getUserService().getSessionClientOfAuthenticatedUser());
-        return workflowEditPath + "&id=" + (Objects.isNull(this.workflow.getId()) ? 0 : this.workflow.getId());
+        return workflowEditPath + "&id=0";
     }
 
     /**
@@ -378,7 +385,12 @@ public class WorkflowForm extends BaseForm {
                 Helper.setErrorMessage("unableToDuplicateWorkflow", logger, e);
                 return this.stayOnCurrentPage;
             }
-            return workflowEditPath;
+            // Store duplicated workflow in Flash scope
+            ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+            externalContext.getFlash().put("duplicatedWorkflow", this.workflow);
+
+            return workflowEditPath + "&id=0";
+
         } catch (DAOException e) {
             Helper.setErrorMessage(ERROR_DUPLICATE, new Object[] {ObjectType.WORKFLOW.getTranslationSingular() },
                 logger, e);
@@ -411,7 +423,16 @@ public class WorkflowForm extends BaseForm {
      */
     public void load(int id) {
         try {
-            if (!Objects.equals(id, 0)) {
+            ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+            Map<String, Object> flash = externalContext.getFlash();
+            // Check if duplicated workflow is stored in Flash scope
+            if (flash.containsKey("duplicatedWorkflow")) {
+                this.workflow = (Workflow) flash.get("duplicatedWorkflow");
+                setWorkflowStatus(workflow.getStatus());
+                readXMLDiagram();
+                this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
+            } else if (id > 0) {
+                // Normal case: Load workflow from database
                 Workflow workflow = ServiceManager.getWorkflowService().getById(id);
                 setWorkflow(workflow);
                 setWorkflowStatus(workflow.getStatus());
