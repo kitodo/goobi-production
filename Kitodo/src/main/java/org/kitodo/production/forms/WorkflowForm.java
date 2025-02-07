@@ -121,18 +121,19 @@ public class WorkflowForm extends BaseForm {
     public void readXMLDiagram() {
         URI xmlDiagramURI = new File(
                 ConfigCore.getKitodoDiagramDirectory() + encodeXMLDiagramName(this.workflow.getTitle())).toURI();
-
-        try (InputStream inputStream = fileService.read(xmlDiagramURI);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
-            StringBuilder sb = new StringBuilder();
-            String line = bufferedReader.readLine();
-            while (Objects.nonNull(line)) {
-                sb.append(line).append("\n");
-                line = bufferedReader.readLine();
+        if (fileService.fileExist(xmlDiagramURI)) {
+            try (InputStream inputStream = fileService.read(xmlDiagramURI);
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
+                StringBuilder sb = new StringBuilder();
+                String line = bufferedReader.readLine();
+                while (Objects.nonNull(line)) {
+                    sb.append(line).append("\n");
+                    line = bufferedReader.readLine();
+                }
+                xmlDiagram = sb.toString();
+            } catch (IOException e) {
+                Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
             }
-            xmlDiagram = sb.toString();
-        } catch (IOException e) {
-            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
         }
     }
 
@@ -352,7 +353,9 @@ public class WorkflowForm extends BaseForm {
      * @return page
      */
     public String newWorkflow() {
-        return workflowEditPath + "&id=0";
+        this.workflow = new Workflow();
+        this.workflow.setClient(ServiceManager.getUserService().getSessionClientOfAuthenticatedUser());
+        return workflowEditPath + "&id=" + (Objects.isNull(this.workflow.getId()) ? 0 : this.workflow.getId());
     }
 
     /**
@@ -371,27 +374,29 @@ public class WorkflowForm extends BaseForm {
             Map<String, URI> diagramsUris = getDiagramUris(baseWorkflow.getTitle());
 
             URI xmlDiagramURI = diagramsUris.get(XML_DIAGRAM_URI);
+            URI svgDiagramURI = diagramsUris.get(SVG_DIAGRAM_URI);
 
             this.workflow = ServiceManager.getWorkflowService().duplicateWorkflow(baseWorkflow);
             setWorkflowStatus(WorkflowStatus.DRAFT);
-            Map<String, URI> diagramsCopyUris = getDiagramUris();
 
-            URI xmlDiagramCopyURI = diagramsCopyUris.get(XML_DIAGRAM_URI);
-
+            // Read XML diagram
             try (InputStream xmlInputStream = ServiceManager.getFileService().read(xmlDiagramURI)) {
                 this.xmlDiagram = IOUtils.toString(xmlInputStream, StandardCharsets.UTF_8);
-                saveFile(xmlDiagramCopyURI, this.xmlDiagram);
-            } catch (IOException e) {
-                Helper.setErrorMessage("unableToDuplicateWorkflow", logger, e);
-                return this.stayOnCurrentPage;
+            }
+            // Read SVG diagram (use a separate input stream)
+            try (InputStream svgInputStream = ServiceManager.getFileService().read(svgDiagramURI)) {
+                this.svgDiagram = IOUtils.toString(svgInputStream, StandardCharsets.UTF_8);
             }
             // Store duplicated workflow in Flash scope
             ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
             externalContext.getFlash().put("duplicatedWorkflow", this.workflow);
+            externalContext.getFlash().put("xmlDiagram", this.xmlDiagram);
+            externalContext.getFlash().put("svgDiagram", this.svgDiagram);
 
             return workflowEditPath + "&id=0";
 
-        } catch (DAOException e) {
+
+        } catch (IOException | DAOException e) {
             Helper.setErrorMessage(ERROR_DUPLICATE, new Object[] {ObjectType.WORKFLOW.getTranslationSingular() },
                 logger, e);
             return this.stayOnCurrentPage;
@@ -423,21 +428,28 @@ public class WorkflowForm extends BaseForm {
      */
     public void load(int id) {
         try {
-            ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
-            Map<String, Object> flash = externalContext.getFlash();
-            // Check if duplicated workflow is stored in Flash scope
-            if (flash.containsKey("duplicatedWorkflow")) {
-                this.workflow = (Workflow) flash.get("duplicatedWorkflow");
-                setWorkflowStatus(workflow.getStatus());
-                readXMLDiagram();
-                this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
-            } else if (id > 0) {
+            if (id > 0) {
                 // Normal case: Load workflow from database
                 Workflow workflow = ServiceManager.getWorkflowService().getById(id);
                 setWorkflow(workflow);
                 setWorkflowStatus(workflow.getStatus());
                 readXMLDiagram();
                 this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
+            } else {
+                // Check if duplicated workflow is stored in Flash scope
+                ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+                Map<String, Object> flash = externalContext.getFlash();
+
+                if (flash.containsKey("duplicatedWorkflow")) {
+                    this.workflow = (Workflow) flash.get("duplicatedWorkflow");
+                    this.xmlDiagram = (String) flash.get("xmlDiagram");
+                    this.svgDiagram = (String) flash.get("svgDiagram");
+                    setWorkflowStatus(workflow.getStatus());
+                    this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
+                }
+                if (this.workflow.getClient() == null) {
+                    this.workflow.setClient(ServiceManager.getUserService().getSessionClientOfAuthenticatedUser());
+                }
             }
             setSaveDisabled(false);
         } catch (DAOException e) {
