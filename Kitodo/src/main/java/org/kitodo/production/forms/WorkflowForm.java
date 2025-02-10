@@ -28,10 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-import javax.enterprise.context.SessionScoped;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.model.SelectItem;
+import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 
 import org.apache.commons.io.IOUtils;
@@ -59,7 +61,7 @@ import org.kitodo.production.workflow.model.Converter;
 import org.kitodo.production.workflow.model.Reader;
 
 @Named("WorkflowForm")
-@SessionScoped
+@ViewScoped
 public class WorkflowForm extends BaseForm {
 
     private static final Logger logger = LogManager.getLogger(WorkflowForm.class);
@@ -75,6 +77,8 @@ public class WorkflowForm extends BaseForm {
     private static final String SVG_EXTENSION = ".svg";
     private static final String SVG_DIAGRAM_URI = "svgDiagramURI";
     private static final String XML_DIAGRAM_URI = "xmlDiagramURI";
+    private Map<String, URI> activeDiagramsUris = new HashMap<>();
+    private String activeWorkflowTitle;
     private final String workflowEditPath = MessageFormat.format(REDIRECT_PATH, "workflowEdit");
     private Integer roleId;
     private boolean migration;
@@ -120,19 +124,19 @@ public class WorkflowForm extends BaseForm {
     public void readXMLDiagram() {
         URI xmlDiagramURI = new File(
                 ConfigCore.getKitodoDiagramDirectory() + encodeXMLDiagramName(this.workflow.getTitle())).toURI();
+        xmlDiagram = readFileContent(xmlDiagramURI);
+    }
 
-        try (InputStream inputStream = fileService.read(xmlDiagramURI);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
-            StringBuilder sb = new StringBuilder();
-            String line = bufferedReader.readLine();
-            while (Objects.nonNull(line)) {
-                sb.append(line).append("\n");
-                line = bufferedReader.readLine();
+    private String readFileContent(URI fileUri) {
+        if (fileService.fileExist(fileUri)) {
+            try (InputStream inputStream = fileService.read(fileUri);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            } catch (IOException e) {
+                Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
             }
-            xmlDiagram = sb.toString();
-        } catch (IOException e) {
-            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
         }
+        return "";
     }
 
     /**
@@ -151,6 +155,11 @@ public class WorkflowForm extends BaseForm {
                 saveWorkflow();
                 if (!this.workflow.getTemplates().isEmpty()) {
                     updateTemplateTasks();
+                }
+                if (Objects.nonNull(activeWorkflowTitle)
+                        && !activeWorkflowTitle.equals(this.workflow.getTitle())) {
+                    deleteOldWorkflowFiles(activeWorkflowTitle);
+                    activeWorkflowTitle = this.workflow.getTitle();
                 }
                 if (migration) {
                     migration = false;
@@ -245,20 +254,33 @@ public class WorkflowForm extends BaseForm {
         } else {
             try {
                 ServiceManager.getWorkflowService().remove(this.workflow);
+                deleteOldWorkflowFiles(this.workflow.getTitle());
 
-                String diagramDirectory = ConfigCore.getKitodoDiagramDirectory();
-                URI svgDiagramURI = new File(
-                        diagramDirectory + decodeXMLDiagramName(this.workflow.getTitle()) + SVG_EXTENSION).toURI();
-                URI xmlDiagramURI = new File(diagramDirectory + encodeXMLDiagramName(this.workflow.getTitle()))
-                        .toURI();
-
-                fileService.delete(svgDiagramURI);
-                fileService.delete(xmlDiagramURI);
-            } catch (DataException | IOException e) {
+            } catch (DataException e) {
                 Helper.setErrorMessage(ERROR_DELETING, new Object[] {ObjectType.WORKFLOW.getTranslationSingular() },
                     logger, e);
             }
         }
+    }
+
+    private void deleteOldWorkflowFiles(String oldDiagramTitle) {
+        try {
+            String diagramDirectory = ConfigCore.getKitodoDiagramDirectory();
+            URI svgDiagramURI = new File(
+                    diagramDirectory + decodeXMLDiagramName(oldDiagramTitle) + SVG_EXTENSION).toURI();
+            URI xmlDiagramURI = new File(diagramDirectory + encodeXMLDiagramName(oldDiagramTitle))
+                    .toURI();
+            if (fileService.fileExist(svgDiagramURI)) {
+                fileService.delete(svgDiagramURI);
+            }
+            if (fileService.fileExist(xmlDiagramURI)) {
+                fileService.delete(xmlDiagramURI);
+            }
+        } catch (IOException e) {
+            Helper.setErrorMessage(ERROR_DELETING, new Object[] {ObjectType.WORKFLOW.getTranslationSingular() },
+                    logger, e);
+        }
+
     }
 
     /**
@@ -277,8 +299,16 @@ public class WorkflowForm extends BaseForm {
 
         xmlDiagram = requestParameterMap.get("editForm:workflowTabView:xmlDiagram");
         if (Objects.nonNull(xmlDiagram)) {
-            svgDiagram = StringUtils.substringAfter(xmlDiagram, "kitodo-diagram-separator");
-            xmlDiagram = StringUtils.substringBefore(xmlDiagram, "kitodo-diagram-separator");
+            if (xmlDiagram.contains("kitodo-diagram-separator")) {
+                svgDiagram = StringUtils.substringAfter(xmlDiagram, "kitodo-diagram-separator");
+                xmlDiagram = StringUtils.substringBefore(xmlDiagram, "kitodo-diagram-separator");
+            }
+            if (xmlDiagram.isEmpty()) {
+                Helper.setErrorMessage("emptyWorkflow");
+                return false;
+            }
+            activeDiagramsUris.put(XML_DIAGRAM_URI, xmlDiagramURI);
+
 
             Reader reader = new Reader(new ByteArrayInputStream(xmlDiagram.getBytes(StandardCharsets.UTF_8)));
             reader.validateWorkflowTasks();
@@ -286,10 +316,22 @@ public class WorkflowForm extends BaseForm {
             Converter converter = new Converter(new ByteArrayInputStream(xmlDiagram.getBytes(StandardCharsets.UTF_8)));
             converter.validateWorkflowTaskList();
 
-            saveFile(svgDiagramURI, svgDiagram);
+            if (Objects.nonNull(svgDiagram)) {
+                saveFile(svgDiagramURI, svgDiagram);
+                activeDiagramsUris.put(SVG_DIAGRAM_URI, svgDiagramURI);
+            } else {
+                if (fileService.fileExist(activeDiagramsUris.get(SVG_DIAGRAM_URI))) {
+                    try (InputStream svgInputStream = ServiceManager.getFileService().read(activeDiagramsUris.get(SVG_DIAGRAM_URI))) {
+                        svgDiagram = IOUtils.toString(svgInputStream, StandardCharsets.UTF_8);
+                        saveFile(svgDiagramURI, svgDiagram);
+                    }
+                } else {
+                    saveFile(svgDiagramURI, "");
+                }
+                activeDiagramsUris.put(SVG_DIAGRAM_URI, svgDiagramURI);
+            }
             saveFile(xmlDiagramURI, xmlDiagram);
         }
-
         return fileService.fileExist(xmlDiagramURI) && fileService.fileExist(svgDiagramURI);
     }
 
@@ -364,22 +406,29 @@ public class WorkflowForm extends BaseForm {
             Map<String, URI> diagramsUris = getDiagramUris(baseWorkflow.getTitle());
 
             URI xmlDiagramURI = diagramsUris.get(XML_DIAGRAM_URI);
+            URI svgDiagramURI = diagramsUris.get(SVG_DIAGRAM_URI);
 
             this.workflow = ServiceManager.getWorkflowService().duplicateWorkflow(baseWorkflow);
             setWorkflowStatus(WorkflowStatus.DRAFT);
-            Map<String, URI> diagramsCopyUris = getDiagramUris();
 
-            URI xmlDiagramCopyURI = diagramsCopyUris.get(XML_DIAGRAM_URI);
-
+            // Read XML diagram
             try (InputStream xmlInputStream = ServiceManager.getFileService().read(xmlDiagramURI)) {
                 this.xmlDiagram = IOUtils.toString(xmlInputStream, StandardCharsets.UTF_8);
-                saveFile(xmlDiagramCopyURI, this.xmlDiagram);
-            } catch (IOException e) {
-                Helper.setErrorMessage("unableToDuplicateWorkflow", logger, e);
-                return this.stayOnCurrentPage;
             }
-            return workflowEditPath;
-        } catch (DAOException e) {
+            // Read SVG diagram (use a separate input stream)
+            try (InputStream svgInputStream = ServiceManager.getFileService().read(svgDiagramURI)) {
+                this.svgDiagram = IOUtils.toString(svgInputStream, StandardCharsets.UTF_8);
+            }
+            // Store duplicated workflow in Flash scope
+            ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+            externalContext.getFlash().put("duplicatedWorkflow", this.workflow);
+            externalContext.getFlash().put("xmlDiagram", this.xmlDiagram);
+            externalContext.getFlash().put("svgDiagram", this.svgDiagram);
+
+            return workflowEditPath + "&id=0";
+
+
+        } catch (IOException | DAOException e) {
             Helper.setErrorMessage(ERROR_DUPLICATE, new Object[] {ObjectType.WORKFLOW.getTranslationSingular() },
                 logger, e);
             return this.stayOnCurrentPage;
@@ -411,12 +460,30 @@ public class WorkflowForm extends BaseForm {
      */
     public void load(int id) {
         try {
-            if (!Objects.equals(id, 0)) {
+            if (id > 0) {
+                // Normal case: Load workflow from database
                 Workflow workflow = ServiceManager.getWorkflowService().getById(id);
                 setWorkflow(workflow);
                 setWorkflowStatus(workflow.getStatus());
+                activeDiagramsUris = getDiagramUris(workflow.getTitle());
+                activeWorkflowTitle = workflow.getTitle();
                 readXMLDiagram();
                 this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
+            } else {
+                // Check if duplicated workflow is stored in Flash scope
+                ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+                Map<String, Object> flash = externalContext.getFlash();
+
+                if (flash.containsKey("duplicatedWorkflow")) {
+                    this.workflow = (Workflow) flash.get("duplicatedWorkflow");
+                    this.xmlDiagram = (String) flash.get("xmlDiagram");
+                    this.svgDiagram = (String) flash.get("svgDiagram");
+                    setWorkflowStatus(workflow.getStatus());
+                    this.dataEditorSettingsDefined = this.dataEditorSettingService.areDataEditorSettingsDefinedForWorkflow(workflow);
+                }
+                if (this.workflow.getClient() == null) {
+                    this.workflow.setClient(ServiceManager.getUserService().getSessionClientOfAuthenticatedUser());
+                }
             }
             setSaveDisabled(false);
         } catch (DAOException e) {
