@@ -1736,6 +1736,23 @@ public class ImportService {
         return processes;
     }
 
+    /**
+     * Retrieve and return label of metadata with given key 'metadataKey'.
+     *
+     * @param ruleset Ruleset from which metadata label is retrieved
+     * @param metadataKey key of metadata for which label ir retrieved
+     * @return label of metadata
+     * @throws IOException if ruleset file could not be read
+     */
+    public String getMetadataTranslation(Ruleset ruleset, String metadataKey) throws IOException {
+        RulesetManagementInterface managementInterface = ServiceManager.getRulesetService().openRuleset(ruleset);
+        User user = ServiceManager.getUserService().getCurrentUser();
+        String metadataLanguage = user.getMetadataLanguage();
+        List<Locale.LanguageRange> languages = Locale.LanguageRange.parse(metadataLanguage.isEmpty()
+                ? Locale.ENGLISH.getCountry() : metadataLanguage);
+        return managementInterface.getTranslationForKey(metadataKey, languages).orElse(metadataKey);
+    }
+
     private TempProcess extractParentRecordFromFile(Document internalDocument, CreateProcessForm createProcessForm)
             throws XPathExpressionException, UnsupportedFormatException, URISyntaxException, IOException,
             ParserConfigurationException, SAXException, ProcessGenerationException, TransformerException {
