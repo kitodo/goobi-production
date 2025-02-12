@@ -41,7 +41,8 @@
                                      imagePreviewForm:stripeContextMenu
                                      imagePreviewForm:mediaContextMenu
                                      metadataAccordion:logicalMetadataHeader
-                                     metadataAccordion:logicalMetadataWrapperPanel"/>
+                                     metadataAccordion:logicalMetadataWrapperPanel
+                                     metadataAccordion:physicalMetadataWrapperPanel"/>
             <p:remoteCommand name="setGalleryViewMode"
                              action="#{DataEditorForm.galleryPanel.setGalleryViewMode}"
                              update="imagePreviewForm galleryHeadingWrapper"
@@ -88,7 +89,7 @@
                                 styleClass="pageList"
                                 binding="#{currentElement}">
                         <!-- Index 0 of stripes is used to identify the logical root element. -->
-                        <p:outputLabel styleClass="stripe #{DataEditorForm.structurePanel.selectedLogicalNode.selected and DataEditorForm.isStripeSelected(stripe.getStructure()) ? 'selected' : ''}"
+                        <p:outputLabel styleClass="stripe #{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.selected and DataEditorForm.isStripeSelected(stripe.getStructure()) ? 'selected' : ''}"
                                        a:data-stripe="#{DataEditorForm.galleryPanel.stripes.indexOf(stripe)}"
                                        a:data-logicalTreeNodeId="#{stripe.logicalTreeNodeId}"
                                        rendered="#{DataEditorForm.galleryPanel.stripes.indexOf(stripe) ne 0}">
@@ -131,7 +132,7 @@
                     <!-- Unstructured media-->
                     <p:outputPanel>
                         <p:outputLabel value="#{msgs['dataEditor.unstructuredMedia']}"
-                                       styleClass="gallery-stripe-header stripe #{DataEditorForm.structurePanel.selectedLogicalNode.selected and DataEditorForm.isStripeSelected(DataEditorForm.galleryPanel.stripes.get(0).getStructure()) ? 'selected' : ''}"
+                                       styleClass="gallery-stripe-header stripe #{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.selected and DataEditorForm.isStripeSelected(DataEditorForm.galleryPanel.stripes.get(0).getStructure()) ? 'selected' : ''}"
                                        a:data-stripe="0"
                                        a:data-logicalTreeNodeId="#{DataEditorForm.galleryPanel.stripes.get(0).logicalTreeNodeId}"
                                        />
@@ -209,7 +210,7 @@
                 </p:menuitem>
                 <p:menuitem value="#{msgs.viewPageInNewWindow}"
                             rendered="#{
-                                DataEditorForm.structurePanel.selectedLogicalNode.type eq StructurePanel.VIEW_NODE_TYPE and 
+                                DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type eq StructurePanel.VIEW_NODE_TYPE and 
                                 mediaProvider.hasPreviewVariant(DataEditorForm.galleryPanel.getGalleryMediaContent(DataEditorForm.galleryPanel.lastSelection.key))}"
                             icon="fa fa-external-link fa-sm"
                             styleClass="plain viewPageInNewWindow"
@@ -249,7 +250,7 @@
                                 imagePreviewForm:mediaContextMenu"/>
                 <p:menuitem value="#{msgs.uploadMedia}"
                             action="#{DataEditorForm.uploadFileDialog.prepare}"
-                            rendered="#{SecurityAccessController.hasAuthorityToUploadMedia() and DataEditorForm.isFolderConfigurationComplete()}"
+                            rendered="#{SecurityAccessController.hasAuthorityToUploadMedia() and DataEditorForm.isFolderConfigurationComplete() and DataEditorForm.selectedMedia.size() == 1}"
                             icon="fa fa-upload fa-sm"
                             styleClass="plain"
                             update = "uploadFileDialog"
@@ -313,6 +314,7 @@
         <h:outputStylesheet name="webjars/openlayers/6.14.1/ol.css"/>
         <h:outputScript library="webjars" name="openlayers/6.14.1/ol.js" />
         <h:outputScript name="js/ol_custom.js"/>
+        <h:outputScript name="js/metadataeditor_tree_drag_drop.js" />
         <h:outputScript name="js/metadataeditor_gallery_drag_drop.js" rendered="#{editImages}" />
     </p:panel>
 </ui:composition>

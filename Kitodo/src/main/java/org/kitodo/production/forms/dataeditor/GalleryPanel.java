@@ -327,43 +327,6 @@ public class GalleryPanel {
         this.galleryViewMode = GalleryViewMode.valueOf(params.get("galleryViewMode").toUpperCase());
     }
 
-    /**
-     * Update the selected TreeNode in the physical structure tree.
-     */
-    private void updateStructure(GalleryMediaContent galleryMediaContent, LogicalDivision structure) {
-        dataEditor.getStructurePanel().updateNodeSelection(galleryMediaContent, structure);
-    }
-
-    void updateSelection(PhysicalDivision physicalDivision, LogicalDivision structuralElement) {
-        if (!physicalDivision.getMediaFiles().isEmpty()) {
-
-            // Update structured view
-            if (this.galleryViewMode.equals(GalleryViewMode.LIST)) {
-                for (GalleryStripe galleryStripe : getStripes()) {
-                    if (Objects.isNull(structuralElement) || Objects.equals(structuralElement, galleryStripe.getStructure())) {
-                        for (GalleryMediaContent galleryMediaContent : galleryStripe.getMedias()) {
-                            if (Objects.equals(physicalDivision, galleryMediaContent.getView().getPhysicalDivision())) {
-                                dataEditor.getSelectedMedia().clear();
-                                dataEditor.getSelectedMedia().add(new ImmutablePair<>(physicalDivision, galleryStripe.getStructure()));
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            // Update unstructured view
-            else {
-                for (GalleryMediaContent galleryMediaContent : getMedias()) {
-                    if (Objects.equals(physicalDivision, galleryMediaContent.getView().getPhysicalDivision())) {
-                        dataEditor.getSelectedMedia().clear();
-                        dataEditor.getSelectedMedia().add(new ImmutablePair<>(
-                                physicalDivision, getLogicalStructureOfMedia(galleryMediaContent).getStructure()));
-                        break;
-                    }
-                }
-            }
-        }
-    }
 
     void show() {
         Process process = dataEditor.getProcess();
@@ -867,9 +830,13 @@ public class GalleryPanel {
 
     private void selectStructure(String stripeIndex) {
         LogicalDivision logicalDivision = stripes.get(Integer.parseInt(stripeIndex)).getStructure();
-        dataEditor.getSelectedMedia().clear();
-        dataEditor.getStructurePanel().updateLogicalNodeSelection(logicalDivision);
-        PrimeFaces.current().executeScript("scrollToSelectedTreeNode();scrollToSelectedPaginationRow();");
+        try {
+            dataEditor.updateSelection(Collections.emptyList(), Collections.singletonList(logicalDivision));
+            PrimeFaces.current().executeScript("scrollToSelectedTreeNode();scrollToSelectedPaginationRow();");
+        } catch (NoSuchMetadataFieldException e) {
+            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
+        }
+        
     }
 
     /**
@@ -935,15 +902,18 @@ public class GalleryPanel {
                 break;
         }
 
-        updateStructure(currentSelection, parentStripe.getStructure());
-        dataEditor.getPaginationPanel().preparePaginationSelectionSelectedItems();
+        try {
+            dataEditor.updateSelection(new ArrayList<>(dataEditor.getSelectedMedia()), Collections.emptyList());
+        }  catch (NoSuchMetadataFieldException e) {
+            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
+        }
+
     }
 
     private void defaultSelect(GalleryMediaContent currentSelection, GalleryStripe parentStripe) {
         if (Objects.isNull(currentSelection)) {
             return;
         }
-
         dataEditor.getSelectedMedia().clear();
         LogicalDivision logicalDivision = parentStripe.getStructure();
         PhysicalDivision physicalDivision = currentSelection.getView().getPhysicalDivision();
@@ -1050,7 +1020,7 @@ public class GalleryPanel {
     }
 
     /**
-     * Return true if the currently selected media (that is shown in the detail view) is the  
+     * Return true if the currently selected media (that is shown in the detail view) is the
      * first media of all available media.
      * @return boolean true if selected media is first media
      */
@@ -1074,7 +1044,7 @@ public class GalleryPanel {
     }
 
     /**
-     * Return true if the currently selected media (that is shown in the detail view) is the  
+     * Return true if the currently selected media (that is shown in the detail view) is the
      * last media of all available media.
      * @return boolean true if selected media is last media
      */

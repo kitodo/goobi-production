@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -419,16 +420,14 @@ public class DataEditorForm implements MetadataTreeTableInterface, RulesetSetupI
         structurePanel.getSeveralAssignments().addAll(severalAssignments);
 
         structurePanel.show();
-        structurePanel.getSelectedLogicalNode().setSelected(true);
-        structurePanel.getSelectedPhysicalNode().setSelected(true);
         metadataPanel.showLogical(getSelectedStructure());
         metadataPanel.showPhysical(getSelectedPhysicalDivision());
         galleryPanel.setGalleryViewMode(GalleryViewMode.getByName(user.getDefaultGalleryViewMode()).name());
         galleryPanel.show();
         paginationPanel.show();
-
         editPagesDialog.prepare();
         updateNumberOfScans();
+        updateToDefaultSelection();
 
         if (logger.isTraceEnabled()) {
             logger.trace("Initializing editor beans took {} ms",
@@ -633,7 +632,7 @@ public class DataEditorForm implements MetadataTreeTableInterface, RulesetSetupI
      * clicked on the context menu entry to delete the physical division.
      */
     public void deletePhysicalDivision() {
-        structurePanel.deleteSelectedPhysicalDivision();
+        structurePanel.deleteSelectedPhysicalDivisions();
         updateNumberOfScans();
     }
 
@@ -876,94 +875,80 @@ public class DataEditorForm implements MetadataTreeTableInterface, RulesetSetupI
         return false;
     }
 
-    void switchStructure(Object treeNodeData, boolean updateGalleryAndPhysicalTree) throws NoSuchMetadataFieldException {
+    /**
+     * Select first logical divison when opening data editor.
+     */
+    public void updateToDefaultSelection() {
+        TreeNode firstSelectedLogicalNode = getStructurePanel().getLogicalTree().getChildren().get(
+            getStructurePanel().getLogicalTree().getChildCount() - 1
+        );
         try {
-            metadataPanel.preserveLogical();
+            updateSelection(
+                Collections.emptyList(), 
+                Collections.singletonList(StructureTreeOperations.getLogicalDivisionFromTreeNode(firstSelectedLogicalNode))
+            );
+        } catch (NoSuchMetadataFieldException e) {
+            logger.error("exception updating to default selection", e);
+        }
+    }
+
+    /**
+     * Update the current selection in the meta data editor by dispatching update events to structure trees,
+     * gallery and pagination panel.
+     * 
+     * @param selectedPhysicalDivisions the list of selected physical divisions (and their parent logical divisions)
+     * @param selectedLogicalDivisions the list of selected logical divisions
+     * @throws NoSuchMetadataFieldException exception in case meta data can not be saved correctly
+     */
+    public void updateSelection(
+        List<Pair<PhysicalDivision, LogicalDivision>> selectedPhysicalDivisions,
+        List<LogicalDivision> selectedLogicalDivisions
+    ) throws NoSuchMetadataFieldException {
+        try {
+            // save previously edited meta data
+            getMetadataPanel().preserveLogical();
         } catch (InvalidMetadataValueException e) {
             logger.info(e.getLocalizedMessage(), e);
         }
 
-        Optional<LogicalDivision> selectedStructure = structurePanel.getSelectedStructure();
+        // update data editor selection (used e.g. in gallery)
+        getSelectedMedia().clear();
+        getSelectedMedia().addAll(selectedPhysicalDivisions);
 
-        metadataPanel.showLogical(selectedStructure);
-        if (treeNodeData instanceof StructureTreeNode) {
-            StructureTreeNode structureTreeNode = (StructureTreeNode) treeNodeData;
-            if (Objects.nonNull(structureTreeNode.getDataObject())) {
-                if (structureTreeNode.getDataObject() instanceof LogicalDivision
-                        && selectedStructure.isPresent()) {
-                    // Logical structure element selected
-                    if (structurePanel.isSeparateMedia()) {
-                        LogicalDivision structuralElement = selectedStructure.get();
-                        if (!structuralElement.getViews().isEmpty()) {
-                            ArrayList<View> views = new ArrayList<>(structuralElement.getViews());
-                            if (Objects.nonNull(views.get(0)) && updateGalleryAndPhysicalTree) {
-                                updatePhysicalStructureTree(views.get(0));
-                                updateGallery(views.get(0));
-                            }
-                        } else {
-                            updatePhysicalStructureTree(null);
-                        }
-                    } else {
-                        getSelectedMedia().clear();
-                    }
-                } else if (structureTreeNode.getDataObject() instanceof View) {
-                    View view = (View) structureTreeNode.getDataObject();
-                    if (view.getPhysicalDivision().hasMediaPartial()) {
-                        View mediaView = DataEditorService.getViewOfBaseMediaByMediaFiles(structurePanel.getLogicalTree().getChildren(),
-                                view.getPhysicalDivision().getMediaFiles());
-                        if (Objects.nonNull(mediaView)) {
-                            view = mediaView;
-                        }
-                    }
+        // update logical meta data panel
+        if (!getStructurePanel().isSeparateMedia() && selectedPhysicalDivisions.size() == 1 
+                && selectedLogicalDivisions.isEmpty()) {
+            // show physical division in logical meta data panel in combined meta data mode
+            getMetadataPanel().showPageInLogical(selectedPhysicalDivisions.get(0).getLeft());
+        } else if (selectedLogicalDivisions.size() == 1 && selectedPhysicalDivisions.isEmpty()) {
+            // show logical division in logical meta data panel
+            getMetadataPanel().showLogical(Optional.of(selectedLogicalDivisions.get(0)));
+        } else {
+            // show nothing in logical meta data panel
+            getMetadataPanel().showPageInLogical(null);
+        }
 
-                    metadataPanel.showPageInLogical(view.getPhysicalDivision());
-                    if (updateGalleryAndPhysicalTree) {
-                        updateGallery(view);
-                    }
-                    // no need to update physical tree because pages can only be clicked in logical tree if physical tree is hidden!
-                }
+        // update physical metadata panel
+        if (getStructurePanel().isSeparateMedia()) {
+            if (selectedPhysicalDivisions.size() == 1) {
+                // show physical division in physical meta data panel
+                getMetadataPanel().showPhysical(Optional.of(selectedPhysicalDivisions.get(0).getLeft()));
+            } else {
+                // show nothing in physical meta data panel
+                getMetadataPanel().showPhysical(Optional.empty());
             }
         }
-        paginationPanel.preparePaginationSelectionSelectedItems();
+
+        // update structure trees
+        getStructurePanel().updateNodeSelection(
+            selectedPhysicalDivisions, 
+            selectedLogicalDivisions
+        );
+    
+        // update pagination panel
+        getPaginationPanel().preparePaginationSelectionSelectedItems();
     }
 
-
-
-    void switchPhysicalDivision() throws NoSuchMetadataFieldException {
-        try {
-            metadataPanel.preservePhysical();
-        } catch (InvalidMetadataValueException e) {
-            logger.info(e.getLocalizedMessage(), e);
-        }
-
-        Optional<PhysicalDivision> selectedPhysicalDivision = structurePanel.getSelectedPhysicalDivision();
-
-        metadataPanel.showPhysical(selectedPhysicalDivision);
-        if (selectedPhysicalDivision.isPresent()) {
-            // update gallery
-            galleryPanel.updateSelection(selectedPhysicalDivision.get(), null);
-            // update logical tree
-            for (GalleryMediaContent galleryMediaContent : galleryPanel.getMedias()) {
-                if (Objects.nonNull(galleryMediaContent.getView())
-                        && Objects.equals(selectedPhysicalDivision.get(), galleryMediaContent.getView().getPhysicalDivision())) {
-                    structurePanel.updateLogicalNodeSelection(galleryMediaContent, null);
-                    break;
-                }
-            }
-        }
-    }
-
-    private void updatePhysicalStructureTree(View view) {
-        GalleryMediaContent galleryMediaContent = this.galleryPanel.getGalleryMediaContent(view);
-        structurePanel.updatePhysicalNodeSelection(galleryMediaContent);
-    }
-
-    private void updateGallery(View view) {
-        PhysicalDivision physicalDivision = view.getPhysicalDivision();
-        if (Objects.nonNull(physicalDivision)) {
-            galleryPanel.updateSelection(physicalDivision, structurePanel.getPageStructure(view, workpiece.getLogicalStructure()));
-        }
-    }
 
     void assignView(LogicalDivision logicalDivision, View view, Integer index) {
         if (Objects.nonNull(index) && index >= 0 && index < logicalDivision.getViews().size()) {
@@ -1317,7 +1302,7 @@ public class DataEditorForm implements MetadataTreeTableInterface, RulesetSetupI
      */
     public boolean canUpdateMetadata() {
         try {
-            return DataEditorService.canUpdateCatalogMetadata(process, workpiece, structurePanel.getSelectedLogicalNode());
+            return DataEditorService.canUpdateCatalogMetadata(process, workpiece, structurePanel.getSelectedLogicalNodeIfSingle());
         } catch (IOException e) {
             Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
             return false;

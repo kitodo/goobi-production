@@ -19,6 +19,7 @@ import static org.kitodo.production.metadata.InsertionPosition.LAST_CHILD_OF_CUR
 import static org.kitodo.production.metadata.InsertionPosition.PARENT_OF_CURRENT_ELEMENT;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -181,13 +182,14 @@ public class AddDocStrucTypeDialog {
                 }
             }
             dataEditor.refreshStructurePanel();
-            TreeNode selectedLogicalTreeNode = dataEditor.getStructurePanel().updateLogicalNodeSelectionRecursive(newStructure,
-                    this.dataEditor.getStructurePanel().getLogicalTree());
-            if (Objects.nonNull(selectedLogicalTreeNode)) {
-                this.dataEditor.getStructurePanel().setSelectedLogicalNode(selectedLogicalTreeNode);
-                this.dataEditor.getMetadataPanel().showLogical(this.dataEditor.getSelectedStructure());
-                dataEditor.refreshStructurePanel();
+            
+            try {
+                dataEditor.updateSelection(Collections.emptyList(), Collections.singletonList(newStructure));
+            } catch (NoSuchMetadataFieldException e) {
+                Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
             }
+            dataEditor.refreshStructurePanel();
+            
             List<Pair<PhysicalDivision, LogicalDivision>> selectedMedia = this.dataEditor.getSelectedMedia().stream()
                     .sorted(Comparator.comparingInt(p -> p.getLeft().getOrder()))
                     .collect(Collectors.toList());
@@ -433,15 +435,35 @@ public class AddDocStrucTypeDialog {
         }
     }
 
+    /** 
+     * Determines the logical parent division that can be used as a basis for the dialog and overwrites the 
+     * user selection with this logical parent division. 
+     * 
+     * <p>Note: Sneakily overwriting the current user selection is a very bad legacy design choice of this dialog. 
+     * This should be improved in the future!</p>
+     */
     private void checkSelectedLogicalNode() {
-        //If a view is selected in logical tree then the 'selectedLogicalNode' will be set to the parent of this view
-        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNode();
-        if (Objects.nonNull(selectedLogicalNode) && selectedLogicalNode.getData() instanceof StructureTreeNode) {
-            StructureTreeNode structureTreeNode = (StructureTreeNode) selectedLogicalNode.getData();
-            if (structureTreeNode.getDataObject() instanceof View) {
-                if (Objects.nonNull(selectedLogicalNode.getParent())) {
-                    previouslySelectedLogicalNode = selectedLogicalNode;
-                    dataEditor.getStructurePanel().setSelectedLogicalNode(selectedLogicalNode.getParent());
+        Set<LogicalDivision> logicalDivisionSet =  dataEditor.getStructurePanel().getSelectedLogicalNodes().stream()
+            .map(StructureTreeOperations::getTreeNodeLogicalParentOrSelf)
+            .map(StructureTreeOperations::getLogicalDivisionFromTreeNode)
+            .collect(Collectors.toSet());
+
+        if (logicalDivisionSet.isEmpty()) {
+            // determine logical parent division for selection of media (in case of gallery selection)
+            logicalDivisionSet.addAll(
+                dataEditor.getSelectedMedia().stream()
+                    .map(Pair::getRight)
+                    .collect(Collectors.toSet())
+            );
+        }
+
+        if (logicalDivisionSet.size() == 1) {
+            LogicalDivision logicalDivision = logicalDivisionSet.iterator().next();
+            if (Objects.nonNull(logicalDivision)) {
+                try {
+                    dataEditor.updateSelection(Collections.emptyList(), Collections.singletonList(logicalDivision));
+                } catch (NoSuchMetadataFieldException e) {
+                    Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
                 }
             }
         }
@@ -593,7 +615,7 @@ public class AddDocStrucTypeDialog {
         selectFirstPageOnAddNode = null;
         selectLastPageOnAddNode = null;
         if (Objects.nonNull(previouslySelectedLogicalNode)) {
-            dataEditor.getStructurePanel().setSelectedLogicalNode(previouslySelectedLogicalNode);
+            dataEditor.getStructurePanel().setSelectedLogicalNodes(Arrays.asList(previouslySelectedLogicalNode));
             previouslySelectedLogicalNode = null;
         }
     }
@@ -726,13 +748,13 @@ public class AddDocStrucTypeDialog {
             return " - ";
         }
     }
-    
+
     private StructuralElementViewInterface getDivisionViewOfStructure(String structure) {
         StructuralElementViewInterface divisionView = dataEditor.getRulesetManagement()
                 .getStructuralElementView(structure, dataEditor.getAcquisitionStage(), dataEditor.getPriorityList());
         return divisionView;
     }
-    
+
     /**
      * This method checks if the selected metadatakey refers to complex metadata.
      * 

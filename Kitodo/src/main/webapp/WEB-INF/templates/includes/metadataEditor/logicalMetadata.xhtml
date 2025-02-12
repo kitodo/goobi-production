@@ -33,7 +33,7 @@
                                      icon="fa fa-plus"
                                      styleClass="secondary"
                                      update="addMetadataForm"
-                                     disabled="#{DataEditorForm.structurePanel.selectedLogicalNode.data.linked or not DataEditorForm.metadataPanel.metadataAddableToStructureElement()}"
+                                     disabled="#{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked or not DataEditorForm.metadataPanel.metadataAddableToStructureElement()}"
                                      action="#{DataEditorForm.addMetadataDialog.prepareAddableMetadataForStructure(DataEditorForm.metadataPanel.logicalMetadataRows.getChildren())}"
                                      oncomplete="PF('addMetadataDialog').show();metadataTable.focusMetadataRow.remember(this.source);">
                         <f:setPropertyActionListener target="#{DataEditorForm.metadataPanel.selectedMetadataTreeNode}" value="#{null}"/>

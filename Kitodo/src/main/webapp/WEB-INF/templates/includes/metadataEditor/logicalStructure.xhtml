@@ -61,11 +61,13 @@
     <div class="scroll-wrapper">
         <p:tree id="logicalTree"
                 value="#{DataEditorForm.structurePanel.logicalTree}"
+                widgetVar="logicalTree"
                 var="logicalNode"
                 nodeVar="defaultTreeNode"
                 styleClass="focusable"
-                selectionMode="single"
-                selection="#{DataEditorForm.structurePanel.selectedLogicalNode}"
+                selectionMode="multiple"
+                multipleDrag="true"
+                selection="#{DataEditorForm.structurePanel.selectedLogicalNodesAsArray}"
                 draggable="#{not readOnly and SecurityAccessController.hasAuthorityToEditProcessStructureData()}"
                 droppable="#{not readOnly and SecurityAccessController.hasAuthorityToEditProcessStructureData()}"
                 dragdropScope="logicalTree"
@@ -152,7 +154,7 @@
         </p:tree>
         <p:contextMenu for="logicalTree" id="contextMenuLogicalTree" widgetVar="contextMenuLogicalTree">
             <p:menuitem value="#{msgs.addElement}"
-                        rendered="#{DataEditorForm.selectedMedia.size() lt 1 and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                        rendered="#{DataEditorForm.selectedMedia.size() lt 1 and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                         icon="fa fa-plus fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"
@@ -165,7 +167,7 @@
             </p:menuitem>
             <p:menuitem
                     value="#{DataEditorForm.consecutivePagesSelected() ? msgs.addElement.concat(' ').concat(msgs.assignMedia) : msgs['dataEditor.removeElement.noConsecutivePagesSelected']}"
-                    rendered="#{DataEditorForm.selectedMedia.size() ge 1 and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                    rendered="#{DataEditorForm.selectedMedia.size() ge 1 and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                     icon="fa fa-plus fa-sm"
                     styleClass="plain"
                     disabled="#{readOnly or not DataEditorForm.consecutivePagesSelected()}"
@@ -177,7 +179,7 @@
             </p:menuitem>
             <p:menuitem value="#{msgs.viewPageInNewWindow}"
                         rendered="#{
-                                DataEditorForm.structurePanel.selectedLogicalNode.type eq StructurePanel.VIEW_NODE_TYPE and
+                                DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type eq StructurePanel.VIEW_NODE_TYPE and
                                 mediaProvider.hasPreviewVariant(DataEditorForm.galleryPanel.getGalleryMediaContent(DataEditorForm.galleryPanel.lastSelection.key))}"
                         icon="fa fa-external-link fa-sm"
                         styleClass="plain viewPageInNewWindow"
@@ -189,7 +191,7 @@
                 <f:param name="cachingUUID" value="#{DataEditorForm.galleryPanel.cachingUUID}"/>
             </p:menuitem>
             <p:menuitem value="#{msgs.changeDocstructType}"
-                        rendered="#{DataEditorForm.structurePanel.selectedLogicalNode.type eq StructurePanel.STRUCTURE_NODE_TYPE and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                        rendered="#{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type eq StructurePanel.STRUCTURE_NODE_TYPE and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                         icon="fa fa-pencil fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"
@@ -201,7 +203,7 @@
                         icon="fa fa-link fa-sm"
                         styleClass="plain assignToNextElement"
                         disabled="#{readOnly}"
-                        rendered="#{DataEditorForm.structurePanel.assignableSeveralTimes and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                        rendered="#{DataEditorForm.structurePanel.assignableSeveralTimes and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                         action="#{DataEditorForm.structurePanel.assign}"
                         process="@this"
                         oncomplete="$('#loadingScreen').hide()"
@@ -214,7 +216,7 @@
                         icon="fa fa-chain-broken fa-sm"
                         styleClass="plain unassign"
                         disabled="#{readOnly}"
-                        rendered="#{DataEditorForm.structurePanel.assignedSeveralTimes and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                        rendered="#{DataEditorForm.structurePanel.assignedSeveralTimes and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                         action="#{DataEditorForm.structurePanel.unassign}"
                         process="@this"
                         oncomplete="$('#loadingScreen').hide()"
@@ -225,14 +227,14 @@
                                 imagePreviewForm:mediaContextMenu"/>
             <p:menuitem value="#{msgs.uploadMedia}"
                         action="#{DataEditorForm.uploadFileDialog.prepare}"
-                        rendered="#{SecurityAccessController.hasAuthorityToUploadMedia() and DataEditorForm.isFolderConfigurationComplete() and not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                        rendered="#{SecurityAccessController.hasAuthorityToUploadMedia() and DataEditorForm.isFolderConfigurationComplete() and DataEditorForm.structurePanel.selectedLogicalNodeIfSingle ne null and not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                         icon="fa fa-upload fa-sm"
                         styleClass="plain"
                         update="uploadFileDialog"
                         disabled="#{readOnly}"
                         process="@this"/>
-            <p:menuitem value="#{DataEditorForm.structurePanel.selectedLogicalNode.data.linked ? msgs.unlinkProcess : msgs.removeElement}"
-                        rendered="#{DataEditorForm.structurePanel.selectedLogicalNode.data.dataObject ne null and DataEditorForm.structurePanel.selectedLogicalNode.type ne StructurePanel.VIEW_NODE_TYPE and DataEditorForm.structurePanel.selectedLogicalNode.type ne StructurePanel.MEDIA_PARTIAL_NODE_TYPE}"
+            <p:menuitem value="#{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked ? msgs.unlinkProcess : msgs.removeElement}"
+                        rendered="#{DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.dataObject ne null and DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type ne StructurePanel.VIEW_NODE_TYPE and DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type ne StructurePanel.MEDIA_PARTIAL_NODE_TYPE}"
                         icon="fa fa-trash fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"
@@ -245,7 +247,7 @@
                                 metadataAccordion:logicalMetadataWrapperPanel
                                 galleryWrapperPanel"/>
             <p:menuitem value="#{msgs.deleteMedia}"
-                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedLogicalNode.type eq StructurePanel.VIEW_NODE_TYPE}"
+                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type eq StructurePanel.VIEW_NODE_TYPE}"
                         icon="fa fa-trash fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"
@@ -259,7 +261,7 @@
                                 metadataAccordion:logicalMetadataWrapperPanel
                                 galleryWrapperPanel"/>
             <p:menuitem value="#{msgs.deleteMediaPartial}"
-                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedLogicalNode.type eq StructurePanel.MEDIA_PARTIAL_NODE_TYPE}"
+                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.type eq StructurePanel.MEDIA_PARTIAL_NODE_TYPE}"
                         icon="fa fa-trash fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"

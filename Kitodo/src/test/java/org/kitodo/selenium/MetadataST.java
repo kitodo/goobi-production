@@ -256,50 +256,82 @@ public class MetadataST extends BaseTestSelenium {
     }
 
     /**
-     * Verifies drag and drop functionality in gallery.
+     * Verifies drag and drop functionality in gallery and structure tree.
+     * 
      * @throws Exception when page navigation or process saving fails.
      */
     @Test
     public void dragAndDropPageTest() throws Exception {
         login("kowal");
+
+        // open metadata editor
+        MetadataEditorPage metaDataEditor = Pages.getMetadataEditorPage();
         Pages.getProcessesPage().goTo().editMetadata(MockDatabase.DRAG_N_DROP_TEST_PROCESS_TITLE);
+
+        // wait until gallery is visible, page order should be 2-1-3
         WebElement unstructuredMedia = Browser.getDriver().findElement(By.id("imagePreviewForm:unstructuredMedia"));
         await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(3, TimeUnit.SECONDS)
                 .until(unstructuredMedia::isDisplayed);
-        // first page in unstructured media
+
+        // wait until first page in visible in unstructured media stripe
         WebElement firstThumbnail = Browser.getDriver()
                 .findElement(By.id("imagePreviewForm:unstructuredMediaList:0:unstructuredMediaPanel"));
         await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(3, TimeUnit.SECONDS)
                 .until(firstThumbnail::isDisplayed);
+
         // hover over second thumbnail to verify overlay text before drag'n'drop
-        Actions hoverAction = new Actions(Browser.getDriver());
-        WebElement secondThumbnail = Browser.getDriver()
-                .findElement(By.id("imagePreviewForm:unstructuredMediaList:1:unstructuredMediaPanel"));
-        hoverAction.moveToElement(secondThumbnail).build().perform();
-        WebElement thumbnailOverlay = secondThumbnail.findElement(By.className("thumbnail-overlay"));
-        await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
-                .until(thumbnailOverlay::isDisplayed);
-        assertEquals("Bild 1, Seite -", thumbnailOverlay.getText().strip(), "Last thumbnail has wrong overlay before drag'n'drop action");
+        metaDataEditor.checkGalleryThumbnailOverlayText(
+            "imagePreviewForm:unstructuredMediaList:1:unstructuredMediaPanel",
+            "Bild 1, Seite -",
+            "Second thumbnail has wrong overlay before drag'n'drop action"
+        );
+
         // drop position for drag'n'drop action
         WebElement dropPosition = Browser.getDriver()
                 .findElement(By.id("imagePreviewForm:unstructuredMediaList:2:unstructuredPageDropArea"));
         await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(3, TimeUnit.SECONDS)
                 .until(dropPosition::isDisplayed);
+
         // drag'n'drop action
         Actions dragAndDropAction = new Actions(Browser.getDriver());
         dragAndDropAction.dragAndDrop(firstThumbnail, dropPosition).build().perform();
         await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
                 .until(Browser.getDriver().findElement(By.id("buttonForm:saveExit"))::isEnabled);
+
+        // page order should now be 1-2-3
+
+        // save process
         Pages.getMetadataEditorPage().saveAndExit();
+
         // check whether new position has been saved correctly
         Pages.getProcessesPage().goTo().editMetadata(MockDatabase.DRAG_N_DROP_TEST_PROCESS_TITLE);
-        secondThumbnail = Browser.getDriver()
-                .findElement(By.id("imagePreviewForm:unstructuredMediaList:1:unstructuredMediaPanel"));
-        hoverAction.moveToElement(secondThumbnail).build().perform();
-        thumbnailOverlay = secondThumbnail.findElement(By.className("thumbnail-overlay"));
-        await().ignoreExceptions().pollDelay(300, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
-                .until(thumbnailOverlay::isDisplayed);
-        assertEquals("Bild 2, Seite -", thumbnailOverlay.getText().strip(), "Last thumbnail has wrong overlay after drag'n'drop action");
+        metaDataEditor.checkGalleryThumbnailOverlayText(
+            "imagePreviewForm:unstructuredMediaList:1:unstructuredMediaPanel",
+            "Bild 2, Seite -",
+            "Second thumbnail has wrong overlay after drag'n'drop action"
+        );
+
+        // select page 1 and 2 in structure tree
+        metaDataEditor.selectStructureTreeNode("0_0", false, false);
+        metaDataEditor.selectStructureTreeNode("0_1", true, false);
+
+        // drag and drop them to last drop
+        WebElement dragElement = Browser.getDriver()
+            .findElement(By.cssSelector("#logicalTree\\:0_0 .ui-treenode-content"));
+        dropPosition = Browser.getDriver()
+                .findElement(By.cssSelector("#logicalTree\\:0_2 + li.ui-tree-droppoint"));
+        new Actions(Browser.getDriver()).dragAndDrop(dragElement, dropPosition).build().perform();
+
+        // page order should now be 3-1-2
+
+        // save process
+        Pages.getMetadataEditorPage().saveAndExit();
+        Pages.getProcessesPage().goTo().editMetadata(MockDatabase.DRAG_N_DROP_TEST_PROCESS_TITLE);
+        metaDataEditor.checkGalleryThumbnailOverlayText(
+            "imagePreviewForm:unstructuredMediaList:0:unstructuredMediaPanel",
+            "Bild 3, Seite -",
+            "First thumbnail has wrong overlay after multi-select drag'n'drop action"
+        );    
     }
 
     /**
@@ -607,6 +639,59 @@ public class MetadataST extends BaseTestSelenium {
 
         // switch back to previous window
         Browser.getDriver().switchTo().window(firstWindowHandle);
+    }
+
+    /**
+     * Checks that multiple elements can be selected in the logical structure tree using the 
+     * ctrl and shift keys. Verifies that selection is applied to pagination panel and gallery.
+     */
+    @Test
+    public void multiSelectInLogicalStructureTreeTest() throws Exception {
+        login("kowal");
+
+        // open metadata editor
+        Pages.getProcessesPage().goTo().editMetadata(MockDatabase.MEDIA_RENAMING_TEST_PROCESS_TITLE);
+
+        // wait until logical structure tree is available
+        MetadataEditorPage metaDataEditor = Pages.getMetadataEditorPage();
+        await().ignoreExceptions().pollDelay(100, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
+            .until(() -> Browser.getDriver().findElement(By.id("logicalTree")).isDisplayed());
+
+        // select first page
+        metaDataEditor.selectStructureTreeNode("0_0", false, false);
+
+        // verify metadata shows of first page is displayed
+        await().ignoreExceptions().pollDelay(100, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
+            .until(() -> Browser.getDriver().findElement(
+                By.id("metadataAccordion:metadata:metadataTable:0:inputText")
+            ).getAttribute("value").equals("-"));
+
+        // select second page with ctrl
+        metaDataEditor.selectStructureTreeNode("0_1", true, false);
+
+        // verify metadata panel is empty
+        await().ignoreExceptions().pollDelay(100, TimeUnit.MILLISECONDS).atMost(5, TimeUnit.SECONDS)
+            .until(() -> Browser.getDriver().findElement(
+                By.id("metadataAccordion:metadata:metadataTable")
+            ).getText().equals("No records found."));
+        
+        // verify both pages are selected in pagination panel
+        metaDataEditor.checkPaginationSelection(2);
+
+        // verify both pages are selected in gallery
+        metaDataEditor.checkGallerySelection(2);
+
+        // select last page
+        metaDataEditor.selectStructureTreeNode("0_2", false, false);
+
+        // select first page with shift (range select)
+        metaDataEditor.selectStructureTreeNode("0_0", false, true);
+
+        // verify all pages are selected in pagination panel
+        metaDataEditor.checkPaginationSelection(3);
+
+        // verify all pages are selected in gallery
+        metaDataEditor.checkGallerySelection(3);
     }
 
     /**
