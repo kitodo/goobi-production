@@ -34,6 +34,9 @@ jobs:
         run: |
             cp $GITHUB_WORKSPACE/config/database.yml.actions $GITHUB_WORKSPACE/config/database.yml
             cp $GITHUB_WORKSPACE/Kitodo-DataManagement/src/main/resources/db/config/flyway.properties.actions $GITHUB_WORKSPACE/Kitodo-DataManagement/src/main/resources/db/config/flyway.properties
+            mkdir -p $GITHUB_WORKSPACE/config-local
+            # cp $GITHUB_WORKSPACE/Kitodo/src/main/resources/kitodo_config.properties $GITHUB_WORKSPACE/config-local
+            # cp $GITHUB_WORKSPACE/Kitodo/src/main/resources/kitodo_projects.xml $GITHUB_WORKSPACE/config-local
 
       # Runs a set of commands using the runners shell
       - name: start mysql
@@ -66,8 +69,17 @@ jobs:
       - name: check maven version
         run:
             mvn --version
+      - name: Run dependency:analyze
+        run:
+            mvn -B '-P!development' dependency:analyze
+      - name: Run production build (required for dependency tree)
+        run: |
+            # sudo mkdir -p /usr/local/kitodo/modules
+            # ls -l /usr/local/kitodo $GITHUB_WORKSPACE
+            mvn -B '-P!development' clean install
+      - name: Run dependency:tree
+        run:
+            mvn -B '-P!development' dependency:tree
       - name: run build
         run:
             mvn clean install -B '-Pall-tests,flyway,checkstyle,!development' && xvfb-run --server-args="-screen 0 1600x1280x24" mvn clean install -B '-Pselenium,!development'
-
-
