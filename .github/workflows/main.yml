@@ -70,4 +70,8 @@ jobs:
         run:
             mvn clean install -B '-Pall-tests,flyway,checkstyle,!development' && xvfb-run --server-args="-screen 0 1600x1280x24" mvn clean install -B '-Pselenium,!development'
 
-
+      - name: Upload Build Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitodo
+          path: Kitodo/target/kitodo-*.war
