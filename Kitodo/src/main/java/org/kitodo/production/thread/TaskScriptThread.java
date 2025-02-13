@@ -73,13 +73,6 @@ public class TaskScriptThread extends EmptyTask {
                 logger.error(e.getMessage(), e);
             }
         }
-        if (task.isTypeExportDMS()) {
-            try {
-                taskService.executeDmsExport(this.task);
-            } catch (DataException | IOException | DAOException e) {
-                logger.error("Data Exception occurred", e);
-            }
-        }
         super.setProgress(100);
     }
 

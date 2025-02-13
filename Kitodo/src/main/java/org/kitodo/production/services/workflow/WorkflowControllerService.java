@@ -470,8 +470,12 @@ public class WorkflowControllerService {
 
         for (Task automaticTask : automaticTasks) {
             automaticTask.setProcessingBegin(new Date());
-            TaskScriptThread thread = new TaskScriptThread(automaticTask);
-            TaskManager.addTask(thread);
+            if (automaticTask.isTypeExportDMS()) {
+                taskService.executeDmsExport(automaticTask);
+            } else {
+                TaskScriptThread thread = new TaskScriptThread(automaticTask);
+                TaskManager.addTask(thread);
+            }
         }
 
         closeParent(process);
