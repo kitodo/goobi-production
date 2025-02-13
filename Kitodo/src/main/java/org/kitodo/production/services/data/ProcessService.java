@@ -806,6 +806,31 @@ public class ProcessService extends ProjectSearchService<Process, ProcessDTO, Pr
     }
 
     /**
+     * Checks whether all child processes of the given parent process are in a completed state.
+     *
+     * @param parentProcess The parent process whose child processes are being checked.
+     * @return true if all child processes are in a completed state, false otherwise.
+     */
+    public boolean areAllChildProcessesInCompletedState(Process parentProcess) {
+        String hql = "SELECT count(p) FROM Process p WHERE p.parent = :parent "
+                + "AND p.sortHelperStatus NOT IN (:completedStates)";
+
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("parent", parentProcess);
+        parameters.put("completedStates", List.of(
+                ProcessState.COMPLETED20.getValue(),
+                ProcessState.COMPLETED.getValue()
+        ));
+        try {
+            Long count = countDatabaseRows(hql, parameters);
+            return count == 0;  // If count is 0, all child processes are completed
+        } catch (DAOException e) {
+            logger.error(e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
      * Searches for linkable processes based on user input. A process can be
      * linked if it has the same rule set, belongs to the same client, and the
      * topmost element of the logical outline below the selected parent element
