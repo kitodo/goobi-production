@@ -867,6 +867,37 @@ from system library in Java 11+ -->
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.2.5</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>${flyway-maven-plugin.version}</version>
+                    <configuration>
+                        <configFiles>
+                            <!-- local configuration file -->
+                            <!--<configFile>${main.basedir}/config-local/flyway.properties</configFile>-->
+                            <configFile>
+                                ${main.basedir}/Kitodo-DataManagement/src/main/resources/db/config/flyway.properties
+                            </configFile>
+                        </configFiles>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.mysql</groupId>
+                            <artifactId>mysql-connector-j</artifactId>
+                            <version>${mysql.version}</version>
+                        </dependency>
+                       <dependency>
+                           <groupId>org.flywaydb</groupId>
+                          <artifactId>flyway-mysql</artifactId>
+                          <version>${flyway-maven-plugin.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mariadb.jdbc</groupId>
+                            <artifactId>mariadb-java-client</artifactId>
+                            <version>${mariadb-java-client.version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -1039,9 +1070,9 @@ from system library in Java 11+ -->
                         <configuration>
                             <configFiles>
                                 <!-- local configuration file -->
-                                <!--<configFile>${basedir}/config-local/flyway.properties</configFile>-->
+                                <!--<configFile>${main.basedir}/config-local/flyway.properties</configFile>-->
                                 <configFile>
-                                    ${basedir}/Kitodo-DataManagement/src/main/resources/db/config/flyway.properties
+                                    ${main.basedir}/Kitodo-DataManagement/src/main/resources/db/config/flyway.properties
                                 </configFile>
                             </configFiles>
                         </configuration>
