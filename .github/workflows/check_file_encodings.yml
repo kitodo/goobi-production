@@ -1,0 +1,48 @@
+name: Check File Encodings
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - '**'
+
+jobs:
+  check-encoding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+
+      - name: Check file encodings
+        run: |
+          #!/bin/bash
+          set -euo pipefail
+          
+          EXIT_CODE=0
+          
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            # Skip if file is binary or doesn't exist (was deleted)
+            if [[ ! -f "$file" ]] || [[ -z "$(grep -Il '.' "$file")" ]]; then
+              continue
+            fi
+            
+            # Try to detect encoding using file command
+            encoding=$(file -i "$file" | grep -oP "charset=\K.*")
+            
+            if [ "$encoding" != "utf-8" ] && [ "$encoding" != "us-ascii" ]; then
+              echo "::error file=${file}::File is not UTF-8 encoded (detected: ${encoding})"
+              EXIT_CODE=1
+            else
+              # Double-check with iconv
+              if ! iconv -f utf-8 -t utf-8 "$file" > /dev/null 2>&1; then
+                echo "::error file=${file}::File contains invalid UTF-8 sequences"
+                EXIT_CODE=1
+              fi
+            fi
+          done
+          
+          exit $EXIT_CODE
