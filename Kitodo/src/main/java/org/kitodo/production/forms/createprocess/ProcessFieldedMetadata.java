@@ -582,16 +582,18 @@ public class ProcessFieldedMetadata extends ProcessDetail implements Serializabl
         assert division == null;
         MetadataGroup result = new MetadataGroup();
         result.setKey(metadataKey);
-        result.setDomain(DOMAIN_TO_MDSEC.get(metadataView.getDomain().orElse(Domain.DESCRIPTION)));
-        try {
-            this.preserve();
-        } catch (NoSuchMetadataFieldException e) {
-            throw new IllegalStateException("never happening exception");
-        }
-        if (skipEmpty) {
-            result.setMetadata(metadata instanceof List ? metadata : new HashSet<>(metadata));
-        } else {
-            result.setMetadata(new HashSet<>(DataEditorService.getExistingMetadataRows(treeNode.getChildren())));
+        if (Objects.nonNull(metadataView)) {
+            result.setDomain(DOMAIN_TO_MDSEC.get(metadataView.getDomain().orElse(Domain.DESCRIPTION)));
+            try {
+                this.preserve();
+            } catch (NoSuchMetadataFieldException e) {
+                throw new IllegalStateException("never happening exception");
+            }
+            if (skipEmpty) {
+                result.setMetadata(metadata instanceof List ? metadata : new HashSet<>(metadata));
+            } else {
+                result.setMetadata(new HashSet<>(DataEditorService.getExistingMetadataRows(treeNode.getChildren())));
+            }
         }
         return result.getMetadata().isEmpty() ? Collections.emptyList() : Collections.singletonList(result);
     }

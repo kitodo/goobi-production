@@ -151,13 +151,15 @@ public class DataEditorService {
         ProcessFieldedMetadata fieldedMetadata = ((ProcessFieldedMetadata) metadataNode.getData());
         ComplexMetadataViewInterface metadataView = fieldedMetadata.getMetadataView();
         List<SelectItem> addableMetadata = new ArrayList<>();
-        for (MetadataViewInterface keyView : metadataView.getAddableMetadata(fieldedMetadata.getChildMetadata(),
-                fieldedMetadata.getAdditionallySelectedFields())) {
-            addableMetadata.add(
-                    new SelectItem(keyView.getId(), keyView.getLabel(),
-                            keyView instanceof SimpleMetadataViewInterface
-                                    ? ((SimpleMetadataViewInterface) keyView).getInputType().toString()
-                                    : "dataTable"));
+        if (Objects.nonNull(metadataView)) {
+            for (MetadataViewInterface keyView : metadataView.getAddableMetadata(fieldedMetadata.getChildMetadata(),
+                    fieldedMetadata.getAdditionallySelectedFields())) {
+                addableMetadata.add(
+                        new SelectItem(keyView.getId(), keyView.getLabel(),
+                                keyView instanceof SimpleMetadataViewInterface
+                                        ? ((SimpleMetadataViewInterface) keyView).getInputType().toString()
+                                        : "dataTable"));
+            }
         }
         return sortMetadataList(addableMetadata, ruleset);
     }

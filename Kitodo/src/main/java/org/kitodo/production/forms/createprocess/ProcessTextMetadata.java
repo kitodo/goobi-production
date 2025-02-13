@@ -38,7 +38,7 @@ public class ProcessTextMetadata extends ProcessSimpleMetadata implements Serial
     }
 
     private String addLeadingZeros(String value) {
-        if (Objects.equals(super.settings.getInputType(), InputType.INTEGER)) {
+        if (Objects.nonNull(super.settings) && InputType.INTEGER.equals(super.settings.getInputType())) {
             int valueLength = value.length();
             int minDigits = super.settings.getMinDigits();
             return valueLength >= minDigits ? value : "0".repeat(minDigits - valueLength).concat(value);
