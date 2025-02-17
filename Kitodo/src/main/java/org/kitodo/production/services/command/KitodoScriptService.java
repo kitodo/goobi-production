@@ -216,7 +216,7 @@ public class KitodoScriptService {
         switch (this.parameters.get("action")) {
             case "generateImages":
                 String folders = parameters.get("folders");
-                List<String> foldersList = Arrays.asList("all");
+                List<String> foldersList = List.of("all");
                 if (Objects.nonNull(folders)) {
                     foldersList = Arrays.asList(folders.split(","));
                 }

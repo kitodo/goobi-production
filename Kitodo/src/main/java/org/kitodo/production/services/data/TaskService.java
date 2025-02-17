@@ -511,7 +511,7 @@ public class TaskService extends ProjectSearchService<Task, TaskDTO, TaskDAO> {
                 logger.info("Calling KitodoScript interpreter: {}", script);
 
                 KitodoScriptService kitodoScriptService = ServiceManager.getKitodoScriptService();
-                kitodoScriptService.execute(Arrays.asList(task.getProcess()), script);
+                kitodoScriptService.execute(Collections.singletonList(task.getProcess()), script);
                 executedSuccessful = true;
             } else {
                 logger.info("Calling the shell: {}", script);

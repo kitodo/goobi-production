@@ -100,7 +100,7 @@ public class LegacyPrefsHelper {
                 StructuralElementViewInterface divisionView = ruleset.getStructuralElementView("", EDIT,
                     priorityList);
                 List<MetadataViewWithValuesInterface> entryViews = divisionView
-                        .getSortedVisibleMetadata(Collections.emptyList(), Arrays.asList(identifier));
+                        .getSortedVisibleMetadata(Collections.emptyList(), List.of(identifier));
                 MetadataViewInterface resultKeyView = entryViews.parallelStream()
                         .map(MetadataViewWithValuesInterface::getMetadata).filter(Optional::isPresent).map(Optional::get)
                         .filter(keyView -> keyView.getId().equals(identifier)).findFirst()
