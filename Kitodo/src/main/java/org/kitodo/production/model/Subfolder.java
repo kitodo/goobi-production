@@ -13,8 +13,11 @@ package org.kitodo.production.model;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -302,6 +305,23 @@ public class Subfolder {
         URI uri = getUri(canonical);
         return new File(uri.getPath()).isFile() ? Optional.of(uri) : Optional.empty();
     }
+
+    /**
+     * Checks if the folder determined by determineDirectoryAndFileNamePattern() is empty.
+     * Retrieve the directory URI and lists its contents.
+     * It stops checking as soon as the first file is found.
+     *
+     * @return true if the folder is empty, false if it contains at least one file
+     */
+    public boolean isFolderEmpty() {
+        URI dir = determineDirectoryAndFileNamePattern().getLeft();
+        try (Stream<Path> entries = Files.list(Paths.get(dir))) {
+            return entries.findFirst().isEmpty(); // Stop after first file is found
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
 
     /**
      * Returns a map of canonical file name parts to URIs with all files
