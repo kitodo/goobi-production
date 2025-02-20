@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale.LanguageRange;
@@ -789,6 +790,8 @@ public class NewspaperProcessesGenerator extends ProcessGenerator {
         createdChild.setType(childType);
         MetadataEditor.writeMetadataEntry(createdChild, identifierMetadata, identifierMetadataValue);
         logicalDivision.getChildren().add(createdChild);
+        logicalDivision.getChildren().sort(Comparator.comparing(LogicalDivision::getOrderlabel,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         return createdChild;
     }
 
