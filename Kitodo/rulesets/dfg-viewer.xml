@@ -111,17 +111,17 @@
             <label lang="de">Abschnitt</label>
         </division>
 
-        <division id="file">
+        <division id="file" processTitle="">
             <label>File</label>
             <label lang="de">Akte</label>
         </division>
 
-        <division id="album">
+        <division id="album" processTitle="">
             <label>Album</label>
             <label lang="de">Album</label>
         </division>
 
-        <division id="register">
+        <division id="register" processTitle="">
             <label>Register</label>
             <label lang="de">Amtsbuch</label>
         </division>
@@ -136,47 +136,47 @@
             <label lang="de">Anrede</label>
         </division>
 
-        <division id="article">
+        <division id="article" processTitle="">
             <label>Article</label>
             <label lang="de">Artikel</label>
         </division>
 
-        <division id="atlas">
+        <division id="atlas" processTitle="">
             <label>Atlas</label>
             <label lang="de">Atlas</label>
         </division>
 
-        <division id="issue">
+        <division id="issue" processTitle="+'-'+#MONTH+'-'+#DAY">
             <label>Issue</label>
             <label lang="de">Ausgabe (auch: Heft)</label>
         </division>
 
-        <division id="bachelor_thesis">
+        <division id="bachelor_thesis" processTitle="">
             <label>Bachelor Thesis</label>
             <label lang="de">Bachelorarbeit</label>
         </division>
 
-        <division id="volume">
+        <division id="volume" processTitle="">
             <label>Volume</label>
             <label lang="de">Band</label>
         </division>
 
-        <division id="contained_work">
+        <division id="contained_work" processTitle="">
             <label>Contained Work</label>
             <label lang="de">Beigefügtes oder Enthaltenes Werk</label>
         </division>
 
-        <division id="additional">
+        <division id="additional" processTitle="">
             <label>Additional</label>
             <label lang="de">Beilage</label>
         </division>
 
-        <division id="report">
+        <division id="report" processTitle="">
             <label>Report</label>
             <label lang="de">Bericht</label>
         </division>
 
-        <division id="official_notification">
+        <division id="official_notification" processTitle="">
             <label>Official Notification</label>
             <label lang="de">Bescheid</label>
         </division>
@@ -186,7 +186,7 @@
             <label lang="de">Besitznachweis</label>
         </division>
 
-        <division id="image">
+        <division id="image" processTitle="">
             <label>Image</label>
             <label lang="de">Bild</label>
         </division>
@@ -201,7 +201,7 @@
             <label lang="de">Buchschmuck</label>
         </division>
 
-        <division id="letter">
+        <division id="letter" processTitle="">
             <label>Letter</label>
             <label lang="de">Brief</label>
         </division>
@@ -221,17 +221,17 @@
             <label lang="de">Rückdeckel</label>
         </division>
 
-        <division id="diploma_thesis">
+        <division id="diploma_thesis" processTitle="">
             <label>Diploma Thesis</label>
             <label lang="de">Diplomarbeit</label>
         </division>
 
-        <division id="doctoral_thesis">
+        <division id="doctoral_thesis" processTitle="">
             <label>Doctoral Thesis</label>
             <label lang="de">Dissertation</label>
         </division>
 
-        <division id="document">
+        <division id="document" processTitle="">
             <label>Document</label>
             <label lang="de">Dokument</label>
         </division>
@@ -241,7 +241,7 @@
             <label lang="de">Druckermarke</label>
         </division>
 
-        <division id="printed_archives">
+        <division id="printed_archives" processTitle="">
             <label>Printed Archives</label>
             <label lang="de">Druckerzeugnis (Archivale)</label>
         </division>
@@ -271,47 +271,47 @@
             <label lang="de">Faszikel</label>
         </division>
 
-        <division id="leaflet">
+        <division id="leaflet" processTitle="">
             <label>Leaflet</label>
             <label lang="de">Flugblatt</label>
         </division>
 
-        <division id="research_paper">
+        <division id="research_paper" processTitle="">
             <label>Research paper</label>
             <label lang="de">Forschungsarbeit</label>
         </division>
 
-        <division id="photograph">
+        <division id="photograph" processTitle="">
             <label>Photograph</label>
             <label lang="de">Fotografie</label>
         </division>
 
-        <division id="fragment">
+        <division id="fragment" processTitle="">
             <label>Fragment</label>
             <label lang="de">Fragment</label>
         </division>
 
-        <division id="land_register">
+        <division id="land_register" processTitle="">
             <label>Land register</label>
             <label lang="de">Grundbuch</label>
         </division>
 
-        <division id="ground_plan">
+        <division id="ground_plan" processTitle="">
             <label>Ground plan</label>
             <label lang="de">Grundriss</label>
         </division>
 
-        <division id="habilitation_thesis">
+        <division id="habilitation_thesis" processTitle="">
             <label>Habilitation thesis</label>
             <label lang="de">Habilitation</label>
         </division>
 
-        <division id="manuscript">
+        <division id="manuscript" processTitle="">
             <label>Manuscript</label>
             <label lang="de">Handschrift</label>
         </division>
 
-        <division id="illustration">
+        <division id="illustration" processTitle="">
             <label>Illustration</label>
             <label lang="de">Illustration</label>
         </division>
@@ -331,22 +331,17 @@
             <label lang="de">Initialschmuck</label>
         </division>
 
-        <division id="year">
-            <label>Year</label>
-            <label lang="de">Jahr</label>
-        </division>
-
         <division id="chapter">
             <label>Chapter</label>
             <label lang="de">Kapitel</label>
         </division>
 
-        <division id="map">
+        <division id="map" processTitle="">
             <label>Map</label>
             <label lang="de">Karte</label>
         </division>
 
-        <division id="cartulary">
+        <division id="cartulary" processTitle="">
             <label>Cartulary</label>
             <label lang="de">Kartular</label>
         </division>
@@ -361,52 +356,47 @@
             <label lang="de">Kupfertitel</label>
         </division>
 
-        <division id="magister_thesis">
+        <division id="magister_thesis" processTitle="">
             <label>Magister thesis</label>
             <label lang="de">Magisterarbeit</label>
         </division>
 
-        <division id="folder">
+        <division id="folder" processTitle="">
             <label>Folder</label>
             <label lang="de">Mappe</label>
         </division>
 
-        <division id="master_thesis">
+        <division id="master_thesis" processTitle="">
             <label>Master thesis</label>
             <label lang="de">Masterarbeit</label>
         </division>
 
-        <division id="multivolume_work">
+        <division id="multivolume_work" processTitle="" withWorkflow="false">
             <label>Multivolume work</label>
             <label lang="de">Mehrbändiges Werk</label>
         </division>
 
-        <division id="month">
-            <label>Month</label>
-            <label lang="de">Monat</label>
-        </division>
-
-        <division id="monograph">
+        <division id="monograph" processTitle="">
             <label>Monograph</label>
             <label lang="de">Monographie</label>
         </division>
 
-        <division id="musical_notation">
+        <division id="musical_notation" processTitle="">
             <label>Musical notation</label>
             <label lang="de">Musiknotation</label>
         </division>
 
-        <division id="periodical">
+        <division id="periodical" processTitle="" use="createChildrenFromParent" withWorkflow="false">
             <label>Periodical</label>
             <label lang="de">Periodica</label>
         </division>
 
-        <division id="poster">
+        <division id="poster" processTitle="">
             <label>Poster</label>
             <label lang="de">Plakat</label>
         </division>
 
-        <division id="plan">
+        <division id="plan" processTitle="">
             <label>Plan</label>
             <label lang="de">Plan</label>
         </division>
@@ -451,7 +441,7 @@
             <label lang="de">Stempel</label>
         </division>
 
-        <division id="study">
+        <division id="study" processTitle="">
             <label>Study</label>
             <label lang="de">Studie</label>
         </division>
@@ -461,17 +451,12 @@
             <label lang="de">Tabelle</label>
         </division>
 
-        <division id="day">
-            <label>Day</label>
-            <label lang="de">Tag</label>
-        </division>
-
-        <division id="proceeding">
+        <division id="proceeding" processTitle="">
             <label>Proceeding</label>
             <label lang="de">Tagungsband</label>
         </division>
 
-        <division id="text">
+        <division id="text" processTitle="">
             <label>Text</label>
             <label lang="de">Text</label>
         </division>
@@ -481,12 +466,12 @@
             <label lang="de">Titelblatt</label>
         </division>
 
-        <division id="act">
+        <division id="act" processTitle="">
             <label>Act</label>
             <label lang="de">Urkunde</label>
         </division>
 
-        <division id="judgement">
+        <division id="judgement" processTitle="">
             <label>Judgement</label>
             <label lang="de">Urteil</label>
         </division>
@@ -501,17 +486,17 @@
             <label lang="de">Vermerk</label>
         </division>
 
-        <division id="preprint">
+        <division id="preprint" processTitle="">
             <label>Preprint</label>
             <label lang="de">Vorabdruck</label>
         </division>
 
-        <division id="dossier">
+        <division id="dossier" processTitle="">
             <label>Dossier</label>
             <label lang="de">Vorgang</label>
         </division>
 
-        <division id="lecture">
+        <division id="lecture" processTitle="">
             <label>Lecture</label>
             <label lang="de">Vorlesung</label>
         </division>
@@ -521,7 +506,7 @@
             <label lang="de">Vorsatz</label>
         </division>
 
-        <division id="paper">
+        <division id="paper" processTitle="">
             <label>Paper</label>
             <label lang="de">Vortrag</label>
         </division>
@@ -536,9 +521,27 @@
             <label lang="de">Widmung</label>
         </division>
 
-        <division id="newspaper">
+        <division id="newspaper" processTitle="" use="createChildrenWithCalendar" withWorkflow="false">
             <label>Newspaper</label>
             <label lang="de">Zeitung</label>
+
+            <subdivisionByDate yearBegin="--01-01">
+                <division id="year" dates="ORDERLABEL" scheme="yyyy" processTitle="+'-'+#YEAR" withWorkflow="false">
+                    <label>Year</label>
+                    <label lang="de">Jahr</label>
+                </division>
+
+                <division id="month" dates="ORDERLABEL" scheme="yyyy-MM"/>
+                    <label>Month</label>
+                    <label lang="de">Monat</label>
+                </division>
+
+                <division id="day" dates="ORDERLABEL" scheme="yyyy-MM-dd"/>
+                    <label>Day</label>
+                    <label lang="de">Tag</label>
+                </division>
+            </subdivisionByDate>
+
         </division>
 
         <!--
@@ -4107,6 +4110,24 @@
             </key>
         </key>
 
+        <!-- Keys technically determined -->
+
+        <key id="LABEL" domain="mets:div">
+            <label>METS label</label>
+            <label lang="de">METS-Beschriftung</label>
+        </key>
+
+        <key id="ORDERLABEL" domain="mets:div">
+            <label>METS order label</label>
+            <label lang="de">METS-Anordnungsbeschriftung</label>
+        </key>
+
+        <key id="CONTENTIDS" domain="mets:div">
+            <label>METS content ID</label>
+            <label lang="de">METS-Inhalts-ID</label>
+            <codomain type="anyURI"/>
+        </key>
+
         <key id="document_type" use="docType">
             <label>Document type</label>
         </key>
@@ -4363,6 +4384,24 @@
             <permit key="descriptionStandard" maxOccurs="1"/>
         </restriction>
 
+        <restriction division="newspaper">
+            <permit division="year"/>
+        </restriction>
+
+        <restriction division="year">
+            <permit division="month"/>
+            <permit key="ORDERLABEL" minOccurs="1" maxOccurs="1"/>
+        </restriction>
+
+        <restriction division="month">
+            <permit division="day"/>
+            <permit key="ORDERLABEL" minOccurs="1" maxOccurs="1"/>
+        </restriction>
+
+        <restriction division="day">
+            <permit division="issue"/>
+            <permit key="ORDERLABEL" minOccurs="1" maxOccurs="1"/>
+        </restriction>
     </correlation>
     <editing>
         <!--

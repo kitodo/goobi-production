@@ -59,6 +59,20 @@
         </mets:structMap>
     </xsl:template>
 
+    <!-- sets TYPE='month' and TYPE='day' in the newspaper issue process, and
+         adds the month's date -->
+    <xsl:template match="mets:div[mets:div/mets:div[@TYPE='issue' and not(mets:mptr)]]">
+        <xsl:copy>
+            <xsl:apply-templates select="@*[name()!='TYPE']"/>
+            <xsl:attribute name="TYPE">month</xsl:attribute>
+            <xsl:attribute name="ORDERLABEL"><xsl:value-of select="substring(mets:div/@ORDERLABEL,1,7)"/></xsl:attribute>
+            <mets:div>
+                <xsl:attribute name="TYPE">day</xsl:attribute>
+                <xsl:apply-templates select="mets:div/@*[name()!='TYPE'] | mets:div/node()"/>
+            </mets:div>
+        </xsl:copy>
+    </xsl:template>
+
     <!-- mets:structLink -->
     <xsl:template match="mets:structLink">
         <mets:structLink>
