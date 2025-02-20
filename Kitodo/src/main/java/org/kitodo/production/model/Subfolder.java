@@ -314,9 +314,17 @@ public class Subfolder {
      * @return true if the folder is empty, false if it contains at least one file
      */
     public boolean isFolderEmpty() {
-        URI dir = determineDirectoryAndFileNamePattern().getLeft();
-        try (Stream<Path> entries = Files.list(Paths.get(dir))) {
-            return entries.findFirst().isEmpty(); // Stop after first file is found
+        Pair<URI, Pattern> query = determineDirectoryAndFileNamePattern();
+        File dir = fileService.getFile(query.getLeft());
+        if (!dir.exists() || !dir.isDirectory()) {
+            return false;  // Ensures we only check valid directories
+        }
+        try (Stream<Path> entries = Files.list(dir.toPath())) {
+            // Apply regex filtering to check only for files matching the pattern
+            return !entries
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .anyMatch(name -> query.getRight().matcher(name).matches()); // Stop after first match
         } catch (IOException e) {
             return false;
         }
