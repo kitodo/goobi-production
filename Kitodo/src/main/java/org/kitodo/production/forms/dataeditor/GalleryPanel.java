@@ -220,14 +220,30 @@ public class GalleryPanel {
         dataEditor.getStructurePanel().show();
         dataEditor.getPaginationPanel().show();
         this.updateStripes();
-        dataEditor.getSelectedMedia().clear();
+        updateSelectionAfterDragDrop(viewsToBeMoved, toStripeIndex);
+    }
 
-        // mark previously selected thumbnail in new stripe as selected
+    /**
+     * Mark moved thumbnails as selected in new stripe.
+     * 
+     * @param viewsToBeMoved the views that were dragged
+     * @param toStripeIndex the stripe index where the thumbnails were dropped
+     */
+    private void updateSelectionAfterDragDrop(List<Pair<View, LogicalDivision>> viewsToBeMoved, int toStripeIndex) {
+        
+        dataEditor.getSelectedMedia().clear();
+        GalleryStripe toStripe = stripes.get(toStripeIndex);
         List<View> movedViews = viewsToBeMoved.stream().map(Pair::getKey).collect(Collectors.toList());
         for (GalleryMediaContent toStripeMedia : toStripe.getMedias()) {
             if (movedViews.contains(toStripeMedia.getView())) {
                 select(toStripeMedia, toStripe, "multi");
             }
+        }
+
+        try {
+            dataEditor.updateSelection(new ArrayList<>(dataEditor.getSelectedMedia()), Collections.emptyList());
+        }  catch (NoSuchMetadataFieldException e) {
+            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
         }
     }
 
@@ -327,43 +343,6 @@ public class GalleryPanel {
         this.galleryViewMode = GalleryViewMode.valueOf(params.get("galleryViewMode").toUpperCase());
     }
 
-    /**
-     * Update the selected TreeNode in the physical structure tree.
-     */
-    private void updateStructure(GalleryMediaContent galleryMediaContent, LogicalDivision structure) {
-        dataEditor.getStructurePanel().updateNodeSelection(galleryMediaContent, structure);
-    }
-
-    void updateSelection(PhysicalDivision physicalDivision, LogicalDivision structuralElement) {
-        if (!physicalDivision.getMediaFiles().isEmpty()) {
-
-            // Update structured view
-            if (this.galleryViewMode.equals(GalleryViewMode.LIST)) {
-                for (GalleryStripe galleryStripe : getStripes()) {
-                    if (Objects.isNull(structuralElement) || Objects.equals(structuralElement, galleryStripe.getStructure())) {
-                        for (GalleryMediaContent galleryMediaContent : galleryStripe.getMedias()) {
-                            if (Objects.equals(physicalDivision, galleryMediaContent.getView().getPhysicalDivision())) {
-                                dataEditor.getSelectedMedia().clear();
-                                dataEditor.getSelectedMedia().add(new ImmutablePair<>(physicalDivision, galleryStripe.getStructure()));
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            // Update unstructured view
-            else {
-                for (GalleryMediaContent galleryMediaContent : getMedias()) {
-                    if (Objects.equals(physicalDivision, galleryMediaContent.getView().getPhysicalDivision())) {
-                        dataEditor.getSelectedMedia().clear();
-                        dataEditor.getSelectedMedia().add(new ImmutablePair<>(
-                                physicalDivision, getLogicalStructureOfMedia(galleryMediaContent).getStructure()));
-                        break;
-                    }
-                }
-            }
-        }
-    }
 
     void show() {
         Process process = dataEditor.getProcess();
@@ -840,11 +819,6 @@ public class GalleryPanel {
         } catch (InvalidMetadataValueException | NoSuchMetadataFieldException e) {
             Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
         }
-        if (Objects.nonNull(selectedPhysicalDivision)) {
-            this.dataEditor.getMetadataPanel().showPageInLogical(selectedPhysicalDivision);
-        } else {
-            Helper.setErrorMessage("Selected PhysicalDivision is null!");
-        }
 
         GalleryStripe parentStripe;
         try {
@@ -855,6 +829,12 @@ public class GalleryPanel {
 
         GalleryMediaContent currentSelection = getGalleryMediaContent(selectedPhysicalDivision);
         select(currentSelection, parentStripe, selectionType);
+
+        try {
+            dataEditor.updateSelection(new ArrayList<>(dataEditor.getSelectedMedia()), Collections.emptyList());
+        }  catch (NoSuchMetadataFieldException e) {
+            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
+        }
 
         String scrollScripts = "scrollToSelectedTreeNode();scrollToSelectedPaginationRow();";
         if (GalleryViewMode.PREVIEW.equals(galleryViewMode)) {
@@ -867,9 +847,13 @@ public class GalleryPanel {
 
     private void selectStructure(String stripeIndex) {
         LogicalDivision logicalDivision = stripes.get(Integer.parseInt(stripeIndex)).getStructure();
-        dataEditor.getSelectedMedia().clear();
-        dataEditor.getStructurePanel().updateLogicalNodeSelection(logicalDivision);
-        PrimeFaces.current().executeScript("scrollToSelectedTreeNode();scrollToSelectedPaginationRow();");
+        try {
+            dataEditor.updateSelection(Collections.emptyList(), Collections.singletonList(logicalDivision));
+            PrimeFaces.current().executeScript("scrollToSelectedTreeNode();scrollToSelectedPaginationRow();");
+        } catch (NoSuchMetadataFieldException e) {
+            Helper.setErrorMessage(e.getLocalizedMessage(), logger, e);
+        }
+        
     }
 
     /**
@@ -934,16 +918,12 @@ public class GalleryPanel {
                 defaultSelect(currentSelection, parentStripe);
                 break;
         }
-
-        updateStructure(currentSelection, parentStripe.getStructure());
-        dataEditor.getPaginationPanel().preparePaginationSelectionSelectedItems();
     }
 
     private void defaultSelect(GalleryMediaContent currentSelection, GalleryStripe parentStripe) {
         if (Objects.isNull(currentSelection)) {
             return;
         }
-
         dataEditor.getSelectedMedia().clear();
         LogicalDivision logicalDivision = parentStripe.getStructure();
         PhysicalDivision physicalDivision = currentSelection.getView().getPhysicalDivision();
@@ -1050,7 +1030,7 @@ public class GalleryPanel {
     }
 
     /**
-     * Return true if the currently selected media (that is shown in the detail view) is the  
+     * Return true if the currently selected media (that is shown in the detail view) is the
      * first media of all available media.
      * @return boolean true if selected media is first media
      */
@@ -1074,7 +1054,7 @@ public class GalleryPanel {
     }
 
     /**
-     * Return true if the currently selected media (that is shown in the detail view) is the  
+     * Return true if the currently selected media (that is shown in the detail view) is the
      * last media of all available media.
      * @return boolean true if selected media is last media
      */

@@ -51,6 +51,7 @@ import org.kitodo.api.dataeditor.rulesetmanagement.SimpleMetadataViewInterface;
 import org.kitodo.api.dataeditor.rulesetmanagement.StructuralElementViewInterface;
 import org.kitodo.api.dataformat.LogicalDivision;
 import org.kitodo.api.dataformat.MediaVariant;
+import org.kitodo.api.dataformat.PhysicalDivision;
 import org.kitodo.api.dataformat.View;
 import org.kitodo.api.dataformat.Workpiece;
 import org.kitodo.api.externaldatamanagement.ImportConfigurationType;
@@ -70,6 +71,7 @@ import org.kitodo.production.forms.createprocess.ProcessFieldedMetadata;
 import org.kitodo.production.forms.dataeditor.DataEditorForm;
 import org.kitodo.production.forms.dataeditor.StructurePanel;
 import org.kitodo.production.forms.dataeditor.StructureTreeNode;
+import org.kitodo.production.forms.dataeditor.StructureTreeOperations;
 import org.kitodo.production.helper.Helper;
 import org.kitodo.production.helper.MetadataComparison;
 import org.kitodo.production.helper.ProcessHelper;
@@ -264,44 +266,19 @@ public class DataEditorService {
                             dataEditor.getAcquisitionStage(), dataEditor.getPriorityList());
         }
 
-        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNode();
-
-        if (Objects.isNull(selectedLogicalNode)) {
-            throw new IllegalStateException("No logical node selected!");
-        }
-
-        if (!(selectedLogicalNode.getData() instanceof StructureTreeNode)) {
-            String nodeClass = "unknown";
-            if (Objects.nonNull(selectedLogicalNode.getData())) {
-                nodeClass = selectedLogicalNode.getData().getClass().getName();
-            }
-            throw new IllegalStateException("Selected logical node data has wrong type '" + nodeClass
-                    + "'! ('StructureTreeNode' expected)");
-        }
-        StructureTreeNode structureTreeNode = (StructureTreeNode) selectedLogicalNode.getData();
-
-        Object dataObject = structureTreeNode.getDataObject();
-
-        // data object is null for structures inside parent processes
-        if (Objects.isNull(dataObject)) {
+        TreeNode selectedNode = dataEditor.getStructurePanel().getSelectedLogicalNodeIfSingle();
+        PhysicalDivision physicalDivision = StructureTreeOperations.getPhysicalDivisionFromTreeNode(selectedNode);
+        
+        if (Objects.isNull(physicalDivision)) {
+            // selected node is not a physical division
             return null;
         }
-
-        if (dataObject instanceof View) {
-            View view = (View) dataObject;
-            if (Objects.isNull(view.getPhysicalDivision())) {
-                throw new IllegalStateException("View has no physical division assigned!");
-            }
-            return dataEditor.getRulesetManagement().getStructuralElementView(
-                view.getPhysicalDivision().getType(),
-                    dataEditor.getAcquisitionStage(), dataEditor.getPriorityList());
-        }
-
-        // data object is a sibling process
-        if (dataObject instanceof Process) {
-            return null;
-        }
-        throw new IllegalStateException("Data object has unknown type '" + dataObject.getClass().getName() + "'!");
+        
+        return dataEditor.getRulesetManagement().getStructuralElementView(
+            physicalDivision.getType(),
+            dataEditor.getAcquisitionStage(), 
+            dataEditor.getPriorityList()
+        );
     }
 
     /**

@@ -22,10 +22,12 @@
         <p:tree id="physicalTree"
                 rendered="#{DataEditorForm.structurePanel.separateMedia}"
                 value="#{DataEditorForm.structurePanel.physicalTree}"
+                widgetVar="physicalTree"
                 var="physicalNode"
                 styleClass="focusable"
-                selectionMode="single"
-                selection="#{DataEditorForm.structurePanel.selectedPhysicalNode}"
+                selectionMode="multiple"
+                multipleDrag="true"
+                selection="#{DataEditorForm.structurePanel.selectedPhysicalNodesAsArray}"
                 draggable="#{not readOnly and SecurityAccessController.hasAuthorityToEditProcessStructureData()}"
                 droppable="#{not readOnly and SecurityAccessController.hasAuthorityToEditProcessStructureData()}"
                 dragdropScope="physicalTree"
@@ -67,7 +69,7 @@
                         collapsedIcon="ui-icon-folder-collapsed">
                 <!--@elvariable id="physicalElementType" type="java.lang.String"-->
                 <ui:param name="physicalElementType" value="#{physicalNode.label}"/>
-                <h:outputText
+                <p:outputLabel
                         value="#{empty physicalElementType ? msgs['dataEditor.withoutType'] : physicalElementType}"
                         style="#{physicalNode.undefined ? 'background-color: gold' : ''}"
                         a:data-order="#{physicalNode.order}"/>
@@ -78,14 +80,14 @@
             </p:treeNode>
             <p:treeNode type="#{StructurePanel.MEDIA_NODE_TYPE}"
                         icon="ui-icon-document">
-                <h:outputText
+                <p:outputLabel
                         value="#{physicalNode.label}"
                         a:data-order="#{physicalNode.order}"/>
                 <h:outputText value=" 🔗" rendered="#{physicalNode.linked}"/>
             </p:treeNode>
             <p:treeNode type="#{StructurePanel.MEDIA_PARTIAL_NODE_TYPE}"
                         icon="ui-icon-media-partial">
-                <h:outputText
+                <p:outputLabel
                         value="#{physicalNode.label}"
                         a:data-order="#{physicalNode.order}"/>
                 <h:outputText value=" 🔗" rendered="#{physicalNode.linked}"/>
@@ -128,7 +130,7 @@
                                 @(.structureElementDataList)
                                 imagePreviewForm:mediaContextMenu"/>
             <p:menuitem value="#{msgs.removeElement}"
-                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedPhysicalNode.rowKey ne '0'}"
+                        rendered="#{SecurityAccessController.hasAuthorityToDeleteMedia() and DataEditorForm.structurePanel.selectedPhysicalNodeIfSingle.rowKey ne '0'}"
                         icon="fa fa-trash fa-sm"
                         styleClass="plain"
                         disabled="#{readOnly}"

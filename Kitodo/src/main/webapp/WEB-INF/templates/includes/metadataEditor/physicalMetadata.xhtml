@@ -35,7 +35,7 @@
                          rendered="#{not readOnly}">
                 <p:row>
                     <h:panelGroup id="addMetadataButtonWrapper"
-                                  rendered="#{not DataEditorForm.structurePanel.selectedLogicalNode.data.linked}"
+                                  rendered="#{not DataEditorForm.structurePanel.selectedLogicalNodeIfSingle.data.linked}"
                                   title="#{DataEditorForm.metadataPanel.metadataAddableToMediaUnit() ? msgs['dataEditor.addMetadata.newMetadata'] : msgs['dataEditor.addMetadata.noMetadataAddable']}">
                         <p:commandButton id="addMetadataButton"
                                          icon="fa fa-plus"

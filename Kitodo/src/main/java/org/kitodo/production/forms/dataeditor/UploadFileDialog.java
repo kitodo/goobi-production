@@ -258,7 +258,7 @@ public class UploadFileDialog {
     }
 
     private void initPosition() {
-        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNode();
+        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNodeIfSingle();
         if (Objects.nonNull(selectedLogicalNode)
                 && selectedLogicalNode.getData() instanceof StructureTreeNode) {
             StructureTreeNode structureTreeNode = (StructureTreeNode) selectedLogicalNode.getData();
@@ -283,7 +283,7 @@ public class UploadFileDialog {
 
     private void preparePossiblePositions() {
         possiblePositions = new ArrayList<>();
-        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNode();
+        TreeNode selectedLogicalNode = dataEditor.getStructurePanel().getSelectedLogicalNodeIfSingle();
         if (Objects.nonNull(selectedLogicalNode)
                 && selectedLogicalNode.getData() instanceof StructureTreeNode) {
             StructureTreeNode structureTreeNode = (StructureTreeNode) selectedLogicalNode.getData();
@@ -425,14 +425,9 @@ public class UploadFileDialog {
             dataEditor.getStructurePanel().preserve();
             dataEditor.refreshStructurePanel();
             dataEditor.getGalleryPanel().show();
-            dataEditor.getStructurePanel().updateLogicalNodeSelection(
-                    dataEditor.getGalleryPanel().getGalleryMediaContent(selectedMedia.get(selectedMedia.size() - 1).getKey()), parent);
-            StructureTreeNode structureTreeNode = new StructureTreeNode(selectedMedia.get(selectedMedia.size() - 1).getKey().getLabel(), 
-                    null, false, false,
-                    MetadataEditor.createUnrestrictedViewOn(selectedMedia.get(selectedMedia.size() - 1).getKey()));
-            dataEditor.switchStructure(structureTreeNode, false);
             dataEditor.getPaginationPanel().show();
             dataEditor.updateNumberOfScans();
+            dataEditor.updateToDefaultSelection();
             uploadFileUri = null;
         }
     }

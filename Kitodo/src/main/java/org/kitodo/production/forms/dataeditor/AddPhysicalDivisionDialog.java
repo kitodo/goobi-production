@@ -12,6 +12,7 @@
 package org.kitodo.production.forms.dataeditor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.Optional;
 
 import javax.faces.model.SelectItem;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.kitodo.api.dataeditor.rulesetmanagement.StructuralElementViewInterface;
 import org.kitodo.api.dataformat.PhysicalDivision;
 import org.kitodo.production.helper.Helper;
@@ -53,7 +55,10 @@ public class AddPhysicalDivisionDialog {
                     selectedPhysicalDivision.get(),
                     selectedPosition);
             dataEditor.refreshStructurePanel();
-            dataEditor.getStructurePanel().selectPhysicalDivision(physicalDivision);
+            dataEditor.getStructurePanel().updateNodeSelection(
+                List.of(new ImmutablePair<>(physicalDivision, null)),
+                Collections.emptyList()
+            );
         } else {
             Helper.setErrorMessage("No physical division selected!");
         }

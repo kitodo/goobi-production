@@ -265,27 +265,21 @@ metadataEditor.gallery = {
                 this.handleSingleSelect(event, target, treeNodeId);
             }
 
-            this.handleSelectionUpdates(treeNodeId);
+            this.handleSelectionUpdates(this.currentSelection);
         },
 
         /**
          * Updates other components of the meta data editor after changes to the current gallery selection.
          * 
-         * @param treeNodeId treeNodeId of newly selected thumbnail
+         * @param treeNodeIds the list of treeNodeIds of selected thumbnails
          */
-        handleSelectionUpdates(treeNodeId) {
+        handleSelectionUpdates(treeNodeIds) {
             // update selection in other components of the meta data editor
-            metadataEditor.pagination.markManyAsSelected(this.findSelectedTreeNodeIds());
-            if (metadataEditor.physicalTree.isAvailable() || metadataEditor.logicalTree.isHideMediaChecked()) {
-                let stripeTreeNodeId = treeNodeId.slice(0, treeNodeId.lastIndexOf("_"));
-                metadataEditor.gallery.stripes.markOneSelected(stripeTreeNodeId);
-                metadataEditor.logicalTree.markNodeAsSelected(stripeTreeNodeId);
-                if (metadataEditor.physicalTree.isAvailable()) {
-                    metadataEditor.physicalTree.markNodeAsSelected(treeNodeId);
-                }
-            } else {
-                metadataEditor.gallery.stripes.resetSelectionStyle();
-                metadataEditor.logicalTree.markNodeAsSelected(treeNodeId);
+            metadataEditor.pagination.markManyAsSelected(treeNodeIds);
+            metadataEditor.logicalTree.markManyAsSelected(treeNodeIds);
+            metadataEditor.gallery.stripes.markManyAsSelected(treeNodeIds);
+            if (metadataEditor.physicalTree.isAvailable()) {
+                metadataEditor.physicalTree.markManyAsSelected(treeNodeIds);
             }
         },
 
@@ -375,7 +369,7 @@ metadataEditor.gallery = {
             // update selection state
             this.lastSelectedItem = toTreeNodeId;
             this.markManyAsSelected(treeNodeIds, toTreeNodeId);
-            this.updateDiscontinuousSecletionState();
+            this.updateDiscontinuousSelectionState();
             metadataEditor.gallery.sendSelectionToBackend(target[0].dataset.order, target[0].dataset.stripe, "range", event);
         },
 
@@ -513,7 +507,7 @@ metadataEditor.gallery = {
                 thumbnail.addClass("last-selection");
             }
 
-            this.updateDiscontinuousSecletionState();
+            this.updateDiscontinuousSelectionState();
         },
 
         /**
@@ -542,7 +536,7 @@ metadataEditor.gallery = {
         /**
          * Checks whether selection is a continuous selection and applies corresponding CSS style class.
          */
-        updateDiscontinuousSecletionState() {
+        updateDiscontinuousSelectionState() {
             // reset discontinuous state
             $("#imagePreviewForm .thumbnail.discontinuous").removeClass("discontinuous");
 
@@ -600,7 +594,7 @@ metadataEditor.gallery = {
                 // retrieve logical tree node id for stripe that is being clicked on
                 let stripeTreeNodeId = $(event.target)[0].dataset.logicaltreenodeid;
                 // mark corresponding node in logical tree as selected
-                metadataEditor.logicalTree.markNodeAsSelected(stripeTreeNodeId);
+                metadataEditor.logicalTree.markManyAsSelected([stripeTreeNodeId]);
                 // reset selection of other panels
                 metadataEditor.gallery.pages.resetSelectionStyle();
                 metadataEditor.pagination.resetSelectionStyle();
@@ -609,7 +603,7 @@ metadataEditor.gallery = {
                 if (metadataEditor.physicalTree.isAvailable()) {
                     // mark first thumbnail as selected 
                     let treeNodeId = this.findFirstThumbnailLogicalTreeNodeId(stripeTreeNodeId);
-                    metadataEditor.physicalTree.markNodeAsSelected(treeNodeId);
+                    metadataEditor.physicalTree.markManyAsSelected([treeNodeId]);
                     metadataEditor.gallery.pages.markManyAsSelected([treeNodeId], treeNodeId);
                     metadataEditor.pagination.markManyAsSelected([treeNodeId]);
                 }
@@ -648,6 +642,19 @@ metadataEditor.gallery = {
             this.resetSelectionStyle();
             let stripe = $("#imagePreviewForm .stripe[data-logicaltreenodeid=\"" + stripeTreeNodeId + "\"]");
             stripe.addClass("selected");
+        },
+
+        /**
+         * Marks multiple stripes as selected by applying the corresponding CSS styling.
+         * 
+         * @param stripeTreeNodeIds the list of logical tree node id of all stripes that are supposed to be selected
+         */
+        markManyAsSelected(stripeTreeNodeIds) {
+            this.resetSelectionStyle();
+            for(let i = 0; i < stripeTreeNodeIds.length; i++) {
+                let stripe = $("#imagePreviewForm .stripe[data-logicaltreenodeid=\"" + stripeTreeNodeIds[i] + "\"]");
+                stripe.addClass("selected");
+            }
         },
 
         /**
@@ -728,14 +735,9 @@ metadataEditor.gallery = {
 metadataEditor.logicalTree = {
 
     /**
-     * Returns true if the checkbox "show media" is checked, meaning the logical tree
-     * will contain individual nodes for each media.
-     * 
-     * @returns true if checkbox "show media" is checked
+     * Remembers the logical tree node id for the node that was last selected by the user.
      */
-    isHideMediaChecked() {
-        return $("#logicalStructureMenuForm\\:hideMediaCheckbox input").attr("aria-checked") === "true";
-    },
+    lastSelectedTreeNodeId: null,
 
     /**
      * Handler that is called by Primefaces when a tree node is clicked.
@@ -744,25 +746,70 @@ metadataEditor.logicalTree = {
      * @param event the mouse event
      */
     onNodeClick(node, event) {
-        let treeNodeId = node.attr("id").split(":")[1];
-        let isMedia = node.hasClass("ui-treenode-leaf")
-            && node.find("> .ui-treenode-content > .ui-icon-document,> .ui-treenode-content > .ui-icon-media-partial").length > 0;
-        if (isMedia) {
-            metadataEditor.gallery.stripes.resetSelectionStyle();
-            metadataEditor.gallery.pages.markManyAsSelected([treeNodeId], treeNodeId);
-            metadataEditor.pagination.markManyAsSelected([treeNodeId]);
-        } else {
-            metadataEditor.gallery.pages.resetSelectionStyle();
-            metadataEditor.pagination.resetSelectionStyle();
-            metadataEditor.gallery.stripes.markOneSelected(treeNodeId);
-            if (metadataEditor.physicalTree.isAvailable()) {
-                let firstTreeNodeId = metadataEditor.gallery.stripes.findFirstThumbnailLogicalTreeNodeId(treeNodeId);
-                if (firstTreeNodeId !== null) {
-                    metadataEditor.pagination.markManyAsSelected([firstTreeNodeId]);
-                    metadataEditor.gallery.pages.markManyAsSelected([firstTreeNodeId], firstTreeNodeId);
-                    metadataEditor.physicalTree.markNodeAsSelected(firstTreeNodeId);
-                }
+        // determine tree node id of the clicked node
+        let currentTreeNodeId = this._getTreeNodeIdFromNode(node);
+
+        if (!(event.metaKey || event.ctrlKey)) {
+            // remove all previous selections when clicking without ctrl key or shift key
+            this.resetSelectionStyle();
+        }
+
+        // mark current node as selected
+        let mode = "add";
+        if (!event.shiftKey) {
+            if (node.hasClass("ui-treenode-selected") && this._findSelectedNodes().length > 1) {
+                // remove selection if users clicks on node again while holding ctrl key and there are other selected nodes
+                this._removeNodeFromSelection(node);
+                mode = "remove";
+            } else {
+                // add node to selection
+                this._addNodeToSelection(node);
             }
+            // remember node for shift selection
+            this.lastSelectedTreeNodeId = currentTreeNodeId;
+        } else {
+            // range select between lastSelectedTreeNodeId and currentTreeNodeId
+            let fromNode = this._getNodeFromTreeNodeId(this.lastSelectedTreeNodeId);
+            let toNode = this._getNodeFromTreeNodeId(currentTreeNodeId);
+            this._addNodeToSelection(toNode);
+            if (fromNode.parent().is(toNode.parent())) {
+                // valid shift selection between siblings
+                let firstNode = toNode.is(fromNode.nextAll()) ? fromNode : toNode;
+                let secondNode = firstNode.is(fromNode) ? toNode : fromNode;
+                if (!firstNode.is(secondNode)) {
+                    let that = this;
+                    firstNode.nextUntil(secondNode).each(function () {
+                        that._addNodeToSelection($(this));
+                    });
+                    this._addNodeToSelection(firstNode);
+                    this._addNodeToSelection(secondNode);
+                }
+            } else {
+                // treat shift selection as single selection
+                // remember node for next shift selection
+                lastSelectedTreeNodeId = currentTreeNodeId;
+            }
+        }
+
+        // find all selected nodes
+        let that = this;
+        let treeNodeIds = this._findSelectedNodes().toArray().map(function(node) {
+            return that._getTreeNodeIdFromNode($(node));
+        });
+        
+        metadataEditor.gallery.stripes.markManyAsSelected(treeNodeIds);
+        metadataEditor.gallery.pages.markManyAsSelected(treeNodeIds, mode === "add" ? currentTreeNodeId: null);
+        metadataEditor.pagination.markManyAsSelected(treeNodeIds);
+        
+        if (this === metadataEditor.logicalTree) {
+            // update physical tree if this method was invoked from a logical tree event
+            if (metadataEditor.physicalTree.isAvailable()) {
+                metadataEditor.physicalTree.markManyAsSelected(treeNodeIds);
+            }
+        }
+        if (this === metadataEditor.physicalTree) {
+            // update logical tree selection if this method was invoked from a physical tree event
+            metadataEditor.logicalTree.markManyAsSelected(treeNodeIds);
         }
     },
 
@@ -779,18 +826,100 @@ metadataEditor.logicalTree = {
     },
 
     /**
-     * Marks one node as selected by applying the CSS styles to the specified tree node.
+     * Marks a set of node as selected by applying the CSS styles to the specified tree node.
      * 
-     * @param treeNodeId the logical tree node id as string, identifying the tree node
+     * @param treeNodeId the logical tree node ids as a list of strings, identifying each tree node
      */
-    markNodeAsSelected(treeNodeId) {
+    markManyAsSelected(treeNodeIds) {
         this.resetSelectionStyle();
+        PF("logicalTree").selections = [];
+        for(let i = 0; i < treeNodeIds.length; i++) {
+            let node = this._getNodeFromTreeNodeId(treeNodeIds[i]);
+            if (node) {
+                this._addNodeToSelection(node);
+                PF("logicalTree").addToSelection(treeNodeIds[i]);
+            }
+        }        
+    },
 
-        let node = $("#logicalTree\\:" + treeNodeId);
+    /**
+     * Return the tree node id from a jquery node object.
+     * @param {*} node the jquery node object
+     * @returns the tree node id
+     */
+    _getTreeNodeIdFromNode(node) {
+        return node.attr("id").split(":")[1];
+    },
+
+    /**
+     * Return the jquery node for a tree node id.
+     * 
+     * @param treeNodeId the tree node id
+     * @returns the jquery object of the node in the logical tree
+     */
+    _getNodeFromTreeNodeId(treeNodeId) {
+        return $("#logicalTree\\:" + treeNodeId);
+    },
+
+    /**
+     * Returns true if the checkbox "show media" is checked, meaning the logical tree
+     * will contain individual nodes for each media.
+     * 
+     * @returns true if checkbox "show media" is checked
+     */
+    _isHideMediaChecked() {
+        return $("#logicalStructureMenuForm\\:hideMediaCheckbox input").attr("aria-checked") === "true";
+    },
+
+    /**
+     * Returns query object of all selected nodes in the logical structure tree.
+     * 
+     * @returns the selected nodes
+     */
+    _findSelectedNodes() {
+        return $("#logicalTree .ui-treenode.ui-treenode-selected");
+    },
+
+    /**
+     * Adds one node to the selection.
+     * 
+     * @param node the jquery node object that is added to the selection
+     */
+    _addNodeToSelection(node) {
+        this._styleNodeAsSelected(node);
+    },
+
+    /**
+     * Styles a node as selected by applying the CSS styles to the specified tree node.
+     * 
+     * @param node the jquery object of the tree node
+     */
+    _styleNodeAsSelected(node) {
         let label = node.find("> .ui-treenode-content > .ui-treenode-label");
         node.attr("aria-selected", "true");
         node.removeClass("ui-treenode-unselected").addClass("ui-treenode-selected");
         label.addClass("ui-state-highlight ui-treenode-outline");
+    },
+
+    /**
+     * Remove one node from the selection.
+     * 
+     * @param node the jquery node object that is removed from the selection
+     */
+    _removeNodeFromSelection(node) {
+        this._styleNodeAsUnselected(node);  
+    },
+
+    /**
+     * Style one node as unselected by removing the CSS styles of the specified node.
+     * 
+     * @param node the jquery object of the tree node
+     */
+    _styleNodeAsUnselected(node) {
+        let label = node.find("> .ui-treenode-content > .ui-treenode-label");
+        node.attr("aria-selected", "false");
+        node.removeClass("ui-treenode-selected").addClass("ui-treenode-unselected");
+        label.removeClass("ui-state-highlight ui-treenode-outline");
     }
 };
 
@@ -816,21 +945,7 @@ metadataEditor.physicalTree = {
      * @param event the mouse event
      */
     onNodeClick(node, event) {
-        // find logical tree node id for the clicked tree node
-        let order = node.find("> .ui-treenode-content span[data-order]")[0].dataset.order;
-        let treeNodeId = metadataEditor.gallery.pages.findTreeNodeIdByOrder(order);
-
-        // apply selection to other components of the metadata editor
-        if (treeNodeId !== null) {
-            let isMedia = node.find("> .ui-treenode-content > .ui-icon-document,> .ui-treenode-content > .ui-icon-media-partial").length > 0;
-            if (isMedia) {
-                let stripeTreeNodeId = treeNodeId.slice(0, treeNodeId.lastIndexOf("_"));
-                metadataEditor.logicalTree.markNodeAsSelected(stripeTreeNodeId);
-                metadataEditor.pagination.markManyAsSelected([treeNodeId]);
-                metadataEditor.gallery.stripes.markOneSelected(stripeTreeNodeId);
-                metadataEditor.gallery.pages.markManyAsSelected([treeNodeId], treeNodeId);
-            }
-        }
+        metadataEditor.logicalTree.onNodeClick.apply(this, [node, event]);
     },
 
     /**
@@ -847,21 +962,91 @@ metadataEditor.physicalTree = {
     },
 
     /**
-     * Mark a single tree node as selected by appyling the corresponding CSS styles.
-     * @param treeNodeId the logical tree node id of the newly selected node
+     * Mark a set of nodes as selected by appyling the corresponding CSS styles.
+     * 
+     * @param treeNodeIds the logical tree node ids as list of strings
      */
-    markNodeAsSelected(treeNodeId) {
+    markManyAsSelected(treeNodeIds) {
         this.resetSelectionStyle();
-        let order = metadataEditor.gallery.pages.findOrderByTreeNodeId(treeNodeId);
-        if (order !== null) {
-            let span = $("#physicalTree span[data-order=\"" + order + "\"]");
-            let node = span.closest(".ui-treenode");
-            let label = node.find("> .ui-treenode-content > .ui-treenode-label");
-            node.attr("aria-selected", "true");
-            node.removeClass("ui-treenode-unselected").addClass("ui-treenode-selected");
-            label.addClass("ui-state-highlight ui-treenode-outline");
+        PF("physicalTree").selections = [];
+        for(let i = 0; i < treeNodeIds.length; i++) {
+            let node = this._getNodeFromTreeNodeId(treeNodeIds[i]);
+            if (node) {
+                this._addNodeToSelection(node);
+                let rowkey = this._findRowKeyByTreeNodeId(treeNodeIds[i]);
+                PF("physicalTree").addToSelection(rowkey);
+            }
         }
     },
+
+    /**
+     * Return the tree node id from a jquery node object.
+     * @param node the jquery node object
+     * @returns the tree node id
+     */
+    _getTreeNodeIdFromNode(node) {
+        let order = node.find("> .ui-treenode-content label[data-order]")[0].dataset.order;
+        return metadataEditor.gallery.pages.findTreeNodeIdByOrder(order);
+    },
+
+    /**
+     * Return the jquery node for a tree node id.
+     * 
+     * @param treeNodeId the tree node id
+     * @returns the jquery object of the node in the logical tree
+     */
+    _getNodeFromTreeNodeId(treeNodeId) {
+        let order = metadataEditor.gallery.pages.findOrderByTreeNodeId(treeNodeId);
+        if (order !== null) {
+            let span = $("#physicalTree label[data-order=\"" + order + "\"]");
+            let node = span.closest(".ui-treenode");
+            return node;
+        }
+        return null;
+    },
+
+    /**
+     * Returns query object of all selected nodes in the physical structure tree.
+     * 
+     * @returns the selected nodes
+     */
+    _findSelectedNodes() {
+        return $("#physicalTree .ui-treenode.ui-treenode-selected");
+    },
+
+    /**
+     * Add a single node to the selection.
+     * 
+     * @param {*} node the jquery node that is added to the selection
+     */
+    _addNodeToSelection(node) {
+        metadataEditor.logicalTree._styleNodeAsSelected(node);
+    },
+
+    /**
+     * Remove a single node from the selection.
+     * 
+     * @param node the jquery node that is removed from the selection
+     */
+    _removeNodeFromSelection(node) {
+        metadataEditor.logicalTree._styleNodeAsUnselected(node);
+    },
+
+    /**
+     * Return rowkey attribute of node for tree node id.
+     * 
+     * @param treeNodeId the tree node if of the node
+     * @returns the rowkey attribute in the physical tree for that node
+     */
+    _findRowKeyByTreeNodeId(treeNodeId) {
+        let order = metadataEditor.gallery.pages.findOrderByTreeNodeId(treeNodeId);
+        let span = $("#physicalTree label[data-order=\"" + order + "\"]");
+        let node = span.closest(".ui-treenode");
+        if (node.length > 0) {
+            return node[0].dataset.rowkey;
+        }
+        return null;
+    }
 };
 
 
@@ -889,10 +1074,9 @@ metadataEditor.pagination = {
 
         // apply selection to other components of meta data editor
         metadataEditor.gallery.pages.markManyAsSelected(treeNodeIds, null);
-        if (treeNodeIds.length > 0) {
-            let lastTreeNodeId = treeNodeIds[treeNodeIds.length - 1];
-            metadataEditor.logicalTree.markNodeAsSelected(lastTreeNodeId);
-            metadataEditor.physicalTree.markNodeAsSelected(lastTreeNodeId);
+        metadataEditor.logicalTree.markManyAsSelected(treeNodeIds);
+        if (metadataEditor.physicalTree.isAvailable()) {
+            metadataEditor.physicalTree.markManyAsSelected(treeNodeIds);
         }
     },
 
@@ -962,7 +1146,7 @@ metadataEditor.detailView = {
         let nextTreeNodeId = nextThumbnail.data("logicaltreenodeid");
         // update selection and trigger reload of detail view
         metadataEditor.gallery.pages.handleSingleSelect(null, nextThumbnail, nextTreeNodeId);
-        metadataEditor.gallery.pages.handleSelectionUpdates(nextTreeNodeId);
+        metadataEditor.gallery.pages.handleSelectionUpdates([nextTreeNodeId]);
         scrollToPreviewThumbnail(nextThumbnail, $("#thumbnailStripeScrollableContent"));
     }    
 };
@@ -1015,7 +1199,7 @@ metadataEditor.shortcuts = {
             let newThumbnailContainer = selectableThumbnails[newIndex];
             let treeNodeId = newThumbnailContainer.dataset.logicaltreenodeid;
             metadataEditor.gallery.pages.handleSingleSelect(null, $(newThumbnailContainer), treeNodeId);
-            metadataEditor.gallery.pages.handleSelectionUpdates(treeNodeId);
+            metadataEditor.gallery.pages.handleSelectionUpdates([treeNodeId]);
             let galleryViewMode = this.getGalleryViewMode();
             if (galleryViewMode === "LIST") {
                 scrollToStructureThumbnail(selectableThumbnails.eq(newIndex), $("#imagePreviewForm\\:structuredPagesField"));
