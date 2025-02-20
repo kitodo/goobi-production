@@ -313,23 +313,20 @@ public class Subfolder {
      *
      * @return true if the folder is empty, false if it contains at least one file
      */
-    public boolean isFolderEmpty() {
+    public boolean isFolderEmpty() throws IOException {
         Pair<URI, Pattern> query = determineDirectoryAndFileNamePattern();
         File dir = fileService.getFile(query.getLeft());
         if (!dir.exists() || !dir.isDirectory()) {
-            return false;  // Ensures we only check valid directories
+            return true;  // No folder = nothing to export
         }
         try (Stream<Path> entries = Files.list(dir.toPath())) {
             // Apply regex filtering to check only for files matching the pattern
-            return !entries
+            return entries
                     .map(Path::getFileName)
                     .map(Path::toString)
-                    .anyMatch(name -> query.getRight().matcher(name).matches()); // Stop after first match
-        } catch (IOException e) {
-            return false;
+                    .noneMatch(name -> query.getRight().matcher(name).matches()); // Stop after first match
         }
     }
-
 
     /**
      * Returns a map of canonical file name parts to URIs with all files
