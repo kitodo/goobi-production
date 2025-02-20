@@ -29,7 +29,7 @@ import org.kitodo.data.database.exceptions.DAOException;
 import org.kitodo.data.exceptions.DataException;
 import org.kitodo.exceptions.InvalidMetadataValueException;
 import org.kitodo.production.forms.createprocess.ProcessDetail;
-import org.kitodo.production.forms.createprocess.ProcessTextMetadata;
+import org.kitodo.production.forms.createprocess.ProcessSimpleMetadata;
 import org.kitodo.production.helper.Helper;
 import org.kitodo.production.helper.metadata.pagination.Paginator;
 import org.kitodo.production.model.bibliography.course.Block;
@@ -302,8 +302,8 @@ public class CountableMetadata {
      * @param startValue
      *            the start value to set
      */
-    public void setStartValue(String startValue) {
-        ((ProcessTextMetadata) metadataDetail).setValue(startValue);
+    public void setStartValue(String startValue) throws InvalidMetadataValueException {
+        ((ProcessSimpleMetadata) metadataDetail).setValue(startValue);
         this.startValue = startValue;
     }
 

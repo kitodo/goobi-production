@@ -34,6 +34,9 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.kitodo.exceptions.InvalidMetadataValueException;
+import org.kitodo.exceptions.MetadataException;
+import org.kitodo.production.forms.createprocess.ProcessSimpleMetadata;
 import org.kitodo.production.helper.XMLUtils;
 import org.kitodo.production.model.bibliography.course.metadata.CountableMetadata;
 import org.kitodo.production.model.bibliography.course.metadata.RecoveredMetadata;
@@ -279,6 +282,10 @@ public class Course extends ArrayList<Block> {
      *
      * @param xml
      *            XML document data structure
+     * @param possibleProcessDetails
+     *            possible process details from the process creation form
+     * @throws InvalidMetadataValueException
+     *             if an invalid value was given for a select-type metadata
      * @throws NoSuchElementException
      *             if ELEMENT_COURSE or ELEMENT_PROCESSES cannot be found
      * @throws IllegalArgumentException
@@ -286,7 +293,7 @@ public class Course extends ArrayList<Block> {
      * @throws NullPointerException
      *             if a mandatory element is absent
      */
-    public Course(Document xml) {
+    public Course(Document xml, Map<String, ProcessSimpleMetadata> possibleProcessDetails) throws InvalidMetadataValueException {
         super();
         processesAreVolatile = false;
         Element rootNode = XMLUtils.getFirstChildWithTagName(xml, ELEMENT_COURSE);
@@ -308,7 +315,7 @@ public class Course extends ArrayList<Block> {
             }
             initialCapacity = processProcessNode(initialCapacity, lastIssueForDate, recoveredMetadata, processNode);
         }
-        processRecoveredMetadata(recoveredMetadata);
+        processRecoveredMetadata(recoveredMetadata, possibleProcessDetails);
         recalculateRegularityOfIssues();
         processesAreVolatile = true;
     }
@@ -362,7 +369,8 @@ public class Course extends ArrayList<Block> {
         }
     }
 
-    private void processRecoveredMetadata(List<RecoveredMetadata> recoveredMetadata) {
+    private void processRecoveredMetadata(List<RecoveredMetadata> recoveredMetadata,
+            Map<String, ProcessSimpleMetadata> possibleProcessDetails) throws InvalidMetadataValueException {
         Map<Pair<Block, String>, CountableMetadata> last = new HashMap<>();
         for (RecoveredMetadata metaDatum : recoveredMetadata) {
             Block foundBlock = null;
@@ -382,6 +390,12 @@ public class Course extends ArrayList<Block> {
             }
             CountableMetadata metadata = new CountableMetadata(foundBlock, Pair.of(metaDatum.getDate(), foundIssue));
             metadata.setMetadataType(metaDatum.getMetadataType());
+            ProcessSimpleMetadata processSimpleMetadata = possibleProcessDetails.get(metaDatum.getMetadataType());
+            if (Objects.isNull(processSimpleMetadata)) {
+                throw new MetadataException("Cannot add metadata key " + metaDatum.getMetadataType(),
+                        new NoSuchElementException(metaDatum.getMetadataType()));
+            }
+            metadata.setMetadataDetail(processSimpleMetadata.getClone());
             metadata.setStartValue(metaDatum.getValue());
             metadata.setStepSize(metaDatum.getStepSize());
             if (Objects.nonNull(foundBlock)) {

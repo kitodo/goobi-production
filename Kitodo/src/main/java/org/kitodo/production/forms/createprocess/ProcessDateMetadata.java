@@ -41,7 +41,7 @@ public class ProcessDateMetadata extends ProcessTextMetadata {
     }
 
     @Override
-    ProcessTextMetadata getClone() {
+    public ProcessTextMetadata getClone() {
         return new ProcessDateMetadata(this);
     }
 
