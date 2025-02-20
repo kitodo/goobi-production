@@ -1453,11 +1453,13 @@ public class FileService {
      * @return whether given URI points to empty directory or not
      */
     public static boolean hasImages(Process process, Folder generatorSource) {
-        if (Objects.nonNull(generatorSource)) {
+        try {
             Subfolder sourceFolder = new Subfolder(process, generatorSource);
-            return !sourceFolder.listContents().isEmpty();
+            return !sourceFolder.isFolderEmpty();
+        } catch (IOException e) {
+            logger.error(e);
+            return false;
         }
-        return false;
     }
 
     /**

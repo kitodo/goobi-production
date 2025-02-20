@@ -13,8 +13,11 @@ package org.kitodo.production.model;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -301,6 +304,28 @@ public class Subfolder {
     public Optional<URI> getURIIfExists(String canonical) {
         URI uri = getUri(canonical);
         return new File(uri.getPath()).isFile() ? Optional.of(uri) : Optional.empty();
+    }
+
+    /**
+     * Checks if the folder determined by determineDirectoryAndFileNamePattern() is empty.
+     * Retrieve the directory URI and lists its contents.
+     * It stops checking as soon as the first file is found.
+     *
+     * @return true if the folder is empty, false if it contains at least one file
+     */
+    public boolean isFolderEmpty() throws IOException {
+        Pair<URI, Pattern> query = determineDirectoryAndFileNamePattern();
+        File dir = fileService.getFile(query.getLeft());
+        if (!dir.exists() || !dir.isDirectory()) {
+            return true;  // No folder = nothing to export
+        }
+        try (Stream<Path> entries = Files.list(dir.toPath())) {
+            // Apply regex filtering to check only for files matching the pattern
+            return entries
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .noneMatch(name -> query.getRight().matcher(name).matches()); // Stop after first match
+        }
     }
 
     /**
