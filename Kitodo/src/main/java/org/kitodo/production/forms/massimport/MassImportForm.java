@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kitodo.api.dataeditor.rulesetmanagement.RulesetManagementInterface;
 import org.kitodo.data.database.beans.ImportConfiguration;
+import org.kitodo.data.database.beans.Ruleset;
 import org.kitodo.data.database.beans.Template;
 import org.kitodo.data.database.exceptions.DAOException;
 import org.kitodo.exceptions.ConfigException;
@@ -53,6 +54,7 @@ public class MassImportForm extends BaseForm {
     private int projectId;
     private int templateId;
     private String templateTitle;
+    private Ruleset ruleset;
     private ImportConfiguration importConfiguration;
     private UploadedFile file;
     private String csvSeparator = ";";
@@ -80,6 +82,7 @@ public class MassImportForm extends BaseForm {
         try {
             Template template = ServiceManager.getTemplateService().getById(templateId);
             templateTitle = template.getTitle();
+            ruleset = template.getRuleset();
             RulesetManagementInterface ruleset = ServiceManager.getRulesetService().openRuleset(template.getRuleset());
             addMetadataDialog.setRulesetManagement(ruleset);
             checkRecordIdentifierConfigured(ruleset);
@@ -220,7 +223,13 @@ public class MassImportForm extends BaseForm {
      */
     public String getColumnHeader(Integer columnIndex) {
         if (columnIndex < metadataKeys.size()) {
-            return Helper.getTranslation(metadataKeys.get(columnIndex));
+            String metadataKey = metadataKeys.get(columnIndex);
+            try {
+                return ServiceManager.getImportService().getMetadataTranslation(ruleset, metadataKey);
+            } catch (IOException e) {
+                Helper.setErrorMessage(e);
+                return metadataKey;
+            }
         }
         return "";
     }
